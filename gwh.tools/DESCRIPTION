@@ -1,0 +1,9 @@
+Package: gwh.tools
+Type: Package
+Title: GWH useful utilities
+Version: 1.0
+Date: 2014-10-20
+Author: GWH
+Maintainer: GWH <georg.w.hofmann@gmail.com>
+Description: More about what it does (maybe more than one line)
+License: GNU

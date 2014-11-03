@@ -22,9 +22,8 @@
 #' @references ~~ Literature or other references for background information ~~
 #' @keywords package
 #' @examples
-#' 
-#' ~~ simple examples of the most important functions ~~
-#' 
+#' LogLine("Example here")
+
 NULL
 
 

@@ -93,10 +93,19 @@ s3.saveRDS <-
 #' @export 
 #' @rdname s3Commands
 s3.source <-
-  function(s3.path){
-    s3.get.apply(s3.path, source)
-    return(invisible())
-  }
+	function(s3.path){
+		s3.get.apply(s3.path, source)
+		return(invisible())
+	}
 
+#' @export 
+#' @rdname s3Commands
+s3.configure <-
+	function(access.key.id, secret.access.key){
+		s3.cmd <- paste('echo "', access.key.id, '\n', secret.access.key, 
+										'\n\n\n\n\n\ny\n" | s3cmd --configure', sep='')
+		system(s3.cmd)
+		return(invisible())
+	}
 
 

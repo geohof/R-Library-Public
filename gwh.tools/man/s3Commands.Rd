@@ -2,6 +2,7 @@
 \name{S3 File Functions}
 \alias{S3 File Functions}
 \alias{s3.apply.put}
+\alias{s3.configure}
 \alias{s3.fread}
 \alias{s3.get}
 \alias{s3.get.apply}
@@ -26,6 +27,8 @@ s3.readRDS(s3.path)
 s3.saveRDS(s3.path, object)
 
 s3.source(s3.path)
+
+s3.configure(access.key.id, secret.access.key)
 }
 \arguments{
 \item{\dots}{%% ~~Describe \code{\dots} here~~}

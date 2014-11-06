@@ -109,3 +109,15 @@ s3.configure <-
 	}
 
 
+#' @export 
+#' @rdname s3Commands
+s3.ls <-
+	function(s3.path){
+		tmp.file <- tempfile()
+		s3.cmd <- paste("s3cmd ls ", s3.path, "> ", tmp.file, sep="")
+		system(s3.cmd)
+		part.file <- fread(tmp.file, header = FALSE)
+		unlink(tmp.file)
+		return(part.file)
+	}
+

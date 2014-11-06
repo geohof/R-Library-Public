@@ -6,6 +6,7 @@
 \alias{s3.fread}
 \alias{s3.get}
 \alias{s3.get.apply}
+\alias{s3.ls}
 \alias{s3.put}
 \alias{s3.readRDS}
 \alias{s3.saveRDS}
@@ -29,6 +30,8 @@ s3.saveRDS(s3.path, object)
 s3.source(s3.path)
 
 s3.configure(access.key.id, secret.access.key)
+
+s3.ls(s3.path)
 }
 \arguments{
 \item{\dots}{%% ~~Describe \code{\dots} here~~}

@@ -116,8 +116,8 @@ s3.ls <-
 		tmp.file <- tempfile()
 		s3.cmd <- paste("s3cmd ls ", s3.path, "> ", tmp.file, sep="")
 		system(s3.cmd)
-		part.file <- fread(tmp.file, header = FALSE)
+		ls.table <- read.table(tmp.file, header = FALSE)    
 		unlink(tmp.file)
-		return(part.file)
+		return(ls.table[,ncol(ls.table)])
 	}
 

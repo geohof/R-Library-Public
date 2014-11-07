@@ -1,0 +1,10 @@
+# Install packages
+install.packages("devtools")
+require(devtools)
+install_github(repo = "geohof/R-Library-Public", subdir = "gwh.tools")
+require(gwh.tools)
+install.packages("snow")
+install.packages("doParallel")
+install.packages("data.table")
+install.packages("Rcpp")
+install.packages("dplyr")

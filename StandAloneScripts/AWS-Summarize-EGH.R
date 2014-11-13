@@ -5,6 +5,7 @@ require(doParallel)
 require(data.table)
 require(Rcpp)
 require(dplyr)
+require(Matrix)
 
 s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/3-EGHwVALIDwLIQwFFE2/"
 s3.input.folder <- "EGHoriginal_PCADD"
@@ -15,7 +16,7 @@ setwd(working.directory)
 s3.input.path <- paste(s3.data.path, s3.input.folder, "/", sep="")
 s3.output.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
 
-# s3.put(file = "~//Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
+s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
   
 
@@ -91,6 +92,7 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     
     event.index <- match(egh$V1, event.id)
     tmp.filter <- is.na(event.index)
+    unmatched.event.id <- unique(egh$V1[tmp.filter])
     if(sum(tmp.filter) > 0L){
       warning("Some eventIDs couldn't be matched.")
       event.index[tmp.filter] <- 1L
@@ -146,7 +148,9 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
                                        x = event.agg.table$count)
       cum.event.matrix <- cum.event.matrix + tmp.event.matrix
     }
-    saveRDS(list(grid.matrix=cum.grid.matrix, event.matrix=cum.event.matrix), out.file.name)
+    saveRDS(list(grid.matrix=cum.grid.matrix, 
+                 event.matrix=cum.event.matrix,
+                 unmatched.event.id), out.file.name)
     file.remove(part.file[i])
   }
 }
@@ -163,6 +167,7 @@ cl <- makeSOCKcluster(names=host.vector)
 registerDoParallel(cl)
 EndTimedLog(log.start.seconds)
 
+reduce.method <- c("add", "add", "unique")
 
 AggFiles <- function(file.in, file.out, num.out, working.directory){
   file.vec = list.files(pattern = file.in)
@@ -180,7 +185,11 @@ AggFiles <- function(file.in, file.out, num.out, working.directory){
       }else{
         mat.list  <- readRDS(file.vec[ii])
         for(iii in 1:length(mat.list)){
-          cum.mat.list[[iii]] <- cum.mat.list[[iii]] + mat.list[[iii]]
+          if(reduce.method[iii]=="add"){
+            cum.mat.list[[iii]] <- cum.mat.list[[iii]] + mat.list[[iii]]
+          }else if(reduce.method[iii]=="unique"){
+            cum.mat.list[[iii]] <- unique(c(cum.mat.list[[iii]], mat.list[[iii]]))            
+          }
         }
       }      
     }
@@ -190,7 +199,7 @@ AggFiles <- function(file.in, file.out, num.out, working.directory){
 
 AggFiles(file.in = "Output-.*", file.out = "Out1-", num.out = 100, working.directory)
 LogLine("Agg level 1 completed.")
-AggFiles(file.in = "Out1-.*", file.out = "Out2-", num.out = 20, working.directory)
+AggFiles(file.in = "Out1-.*", file.out = "Out2-", num.out = 5, working.directory)
 LogLine("Agg level 2 completed.")
 AggFiles(file.in = "Out2-.*", file.out = "OutputFinal", num.out = 1, working.directory)
 LogLine("Agg level 3 completed.")
@@ -209,6 +218,7 @@ sum.mat <- sparseMatrix(dim = c(num.bucket, length(haz.id.vec)),
                         j = bucket.table$haz.id, 
                         x = 1)
 
+stop("Also need to output unmatched.event.id.")
 event.mat <- mat.list[[2]]
 
 

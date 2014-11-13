@@ -8,6 +8,7 @@
 \alias{s3.get.apply}
 \alias{s3.ls}
 \alias{s3.put}
+\alias{s3.read.csv}
 \alias{s3.readRDS}
 \alias{s3.saveRDS}
 \alias{s3.source}
@@ -24,6 +25,8 @@ s3.get(s3.path, out.file = "", options = "")
 s3.put(file, s3.path, options = "")
 
 s3.readRDS(s3.path)
+
+s3.read.csv(s3.path)
 
 s3.saveRDS(s3.path, object)
 

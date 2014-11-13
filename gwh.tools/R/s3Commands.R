@@ -82,6 +82,10 @@ s3.put <-
 s3.readRDS <-
   function(s3.path)s3.get.apply(s3.path, readRDS)
 
+#' @export 
+#' @rdname s3Commands
+s3.read.csv <-
+  function(s3.path)s3.get.apply(s3.path, read.csv)
 
 
 #' @export 

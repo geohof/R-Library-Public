@@ -6,15 +6,18 @@ require(data.table)
 require(Rcpp)
 require(dplyr)
 
-s3.data.path <- "s3://middleware-research/useq/"
-s3.input.folder <- "EGH_FINAL_WLIQ_wFFE12"
-working.directory <- "/mnt/d1/"
-setwd(working.directory)
+s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/3-EGHwVALIDwLIQwFFE2/"
+s3.input.folder <- "EGHoriginal_PCADD"
 
+working.directory <- "/mnt"
+setwd(working.directory)
 
 s3.input.path <- paste(s3.data.path, s3.input.folder, "/", sep="")
 s3.output.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
-s3.profile.path <- "s3://middleware-research/Georg/Data/EGHStats/EGH_USEQ_Final/"
+
+# s3.put(file = "~//Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
+s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
+  
 
 part.file <- s3.ls(s3.path = s3.input.path)
 part.file <- strsplit(part.file, split="/")
@@ -23,10 +26,10 @@ part.file <- part.file[grep(s3.file.pattern, part.file)]
 num.part <- length(part.file)
 LogLine("Discovered ", num.part, " partition files.")
 
-file.name <- "USEQ_validusid_validusrate.csv"
+file.name <- "EventRate.csv"
 event.table <- s3.fread(paste(s3.profile.path, file.name, sep=""))
-event.id <- c(0L, event.table$V1)
-event.rate <- c(0, event.table$V2)
+event.id <- c(0L, event.table$val.event.id)
+event.rate <- c(0, event.table$rate)
 num.event <- length(event.id)
 
 file.name <- "gll.csv"
@@ -34,7 +37,7 @@ gll <- s3.fread(paste(s3.profile.path, file.name, sep=""))
 grid.id <- c(0L, gll$grid.id)
 num.grid <- length(grid.id)
 
-file.name <- "ExcRateThresholds.csv"
+file.name <- "BucketThresholds.csv"
 threshold.table <- s3.fread(paste(s3.profile.path, file.name, sep=""))
 num.threshold <- nrow(threshold.table)
 haz.id.vec <- unique(threshold.table$haz.id)

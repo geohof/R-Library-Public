@@ -9,7 +9,7 @@ require(dplyr)
 s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/3-EGHwVALIDwLIQwFFE2/"
 s3.input.folder <- "EGHoriginal_PCADD"
 
-working.directory <- "/mnt"
+working.directory <- "~/data/"
 setwd(working.directory)
 
 s3.input.path <- paste(s3.data.path, s3.input.folder, "/", sep="")
@@ -196,7 +196,9 @@ AggFiles(file.in = "Out2-.*", file.out = "OutputFinal", num.out = 1, working.dir
 LogLine("Agg level 3 completed.")
 
 file.name <- "OutputFinal00000.RDS"
-s3.put(file = file.name, s3.path = s3.output.path, options = "-m binary/octet-stream")
+s3.put(file = file.name, 
+       s3.path = paste(s3.output.path, "ResultBin.RDS", sep=""), 
+       options = "-m binary/octet-stream")
 
 mat.list <- readRDS("OutputFinal00000.RDS")
 
@@ -218,7 +220,7 @@ write.csv(data.frame(event.id = event.id,
 s3.put(file = file.name, s3.path = s3.output.path)
 
 file.name <- "EventHazCount.csv"
-write.csv(as.matrix(event.mat), file.name, row.names=FALSE)
+write.csv(as.matrix(event.mat), file.name, row.names=TRUE)
 s3.put(file = file.name, s3.path = s3.output.path)
 
 grid.mat <- mat.list[[1]]
@@ -231,7 +233,7 @@ write.csv(data.frame(grid.id, grid.rate), file.name, row.names=FALSE)
 s3.put(file = file.name, s3.path = s3.output.path)
 
 file.name <- "GridHazRate.csv"
-write.csv(as.matrix(grid.mat), file.name, row.names=FALSE)
+write.csv(as.matrix(grid.mat), file.name, row.names=TRUE)
 s3.put(file = file.name, s3.path = s3.output.path)
 
 

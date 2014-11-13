@@ -16,7 +16,7 @@ setwd(working.directory)
 s3.input.path <- paste(s3.data.path, s3.input.folder, "/", sep="")
 s3.output.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
 
-s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
+#s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
   
 
@@ -150,7 +150,7 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     }
     saveRDS(list(grid.matrix=cum.grid.matrix, 
                  event.matrix=cum.event.matrix,
-                 unmatched.event.id), out.file.name)
+                 unmatched.event.id=unmatched.event.id), out.file.name)
     file.remove(part.file[i])
   }
 }
@@ -169,7 +169,7 @@ EndTimedLog(log.start.seconds)
 
 reduce.method <- c("add", "add", "unique")
 
-AggFiles <- function(file.in, file.out, num.out, working.directory){
+AggFiles <- function(file.in, file.out, num.out, working.directory, reduce.method){
   file.vec = list.files(pattern = file.in)
   num.in <- length(file.vec)
   threshold.vec <- seq(from = 1, to = num.in + 1L, length.out = num.out + 1L)
@@ -197,12 +197,17 @@ AggFiles <- function(file.in, file.out, num.out, working.directory){
   }
 }
 
-AggFiles(file.in = "Output-.*", file.out = "Out1-", num.out = 100, working.directory)
+AggFiles(file.in = "Output-.*", file.out = "Out1-", num.out = 100, 
+         working.directory, reduce.method = reduce.method)
 LogLine("Agg level 1 completed.")
-AggFiles(file.in = "Out1-.*", file.out = "Out2-", num.out = 5, working.directory)
+AggFiles(file.in = "Out1-.*", file.out = "Out2-", num.out = 5, 
+         working.directory, reduce.method = reduce.method)
 LogLine("Agg level 2 completed.")
-AggFiles(file.in = "Out2-.*", file.out = "OutputFinal", num.out = 1, working.directory)
+AggFiles(file.in = "Out2-.*", file.out = "OutputFinal", num.out = 1, 
+         working.directory, reduce.method = reduce.method)
 LogLine("Agg level 3 completed.")
+
+stopCluster(cl)
 
 file.name <- "OutputFinal00000.RDS"
 s3.put(file = file.name, 
@@ -259,11 +264,11 @@ file.name <- "BucketMeta.csv"
 write.csv(bucket.table, file.name, row.names=FALSE)
 s3.put(file = file.name, s3.path = s3.output.path)
 
-
-
-
-
-
+file.name <- "HazardMeta.csv"
+write.csv(unique(data.frame(haz.id=threshold.table$haz.id,
+                            haz.name=threshold.table$haz.name)), 
+          file.name, row.names=FALSE)
+s3.put(file = file.name, s3.path = s3.output.path)
 
 #write.csv(as.matrix(fin.mat), "resultAll.csv")
 #system("s3cmd put resultAll.csv s3://middleware-research/TEMP_Georg/") 

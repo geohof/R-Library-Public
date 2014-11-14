@@ -1,21 +1,29 @@
 require(maps)
 require(gwh.tools)
+require(Matrix)
 
 options(stringsAsFactors = FALSE)
-setwd("I:/MiddlewarePrototype/Data/USEQ/EGHUpdate/")
-#system("s3cmd put -m binary/octet-stream matFinal00000.RDS s3://middleware-research/TEMP_Georg/") 
-all.mat <- readRDS("matFinal00000.RDS")
-grid.id <- 1L:nrow(all.mat)
-vg.table <- OpenFile(path = "../Model/Hazard/Geography/USGS_Grid/", 
-                     file.name.base = "gll_VRISC")
-m <- match(grid.id, vg.table$grid.id)
-f <- !is.na(m)
 
-all.mat <- all.mat[f,]
-grid.id <- grid.id[f]
+s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/3-EGHwVALIDwLIQwFFE2/"
+s3.input.folder <- "EGHoriginal_PCADD"
 
-colSums(all.mat)
+working.directory <- "~/data/"
+setwd(working.directory)
 
+s3.input.path <- paste(s3.data.path, s3.input.folder, "_MetaOld/", sep="")
+s3.output.path <- paste(s3.data.path, s3.input.folder, "_Vis/", sep="")
+
+#s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
+#s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
+
+
+result.list <- s3.readRDS(s3.path = paste(s3.input.path, "ResultBin.RDS", sep=""))
+grid.matrix <- result.list$grid.matrix
+grid.meta <- s3.read.csv(s3.path = paste(s3.input.path, "GridMeta.csv", sep=""))
+grid.filter <- grid.meta$grid.id!=0
+grid.meta <- grid.meta[grid.filter,] 
+grid.matrix <- grid.matrix[grid.filter,] 
+grid.id <- grid.meta$grid.id
 
 exc.rate.vector <- c(.0001, .0002, .0005, .001, .002, .005, .01, .02, .05, .1, .2, .5, 1)
 
@@ -25,16 +33,15 @@ map.rp.vec <- c(2475, 475)
 map.er.vector <- -log(1 - 1 / map.rp.vec)
 
 
-threshold.table <- OpenFile(file.name.base = "ExcRateThresholds")  
+bucket.table <- s3.read.csv(s3.path = paste(s3.input.path, "BucketMeta.csv", sep=""))
+hazard.id <- unique(bucket.table$haz.id)
 
-hazard.name <- unique(threshold.table$haz.name)
-
-num.records <- nrow(all.mat)
+num.records <- nrow(grid.matrix)
 
 
-for(haz.i in 1:length(hazard.name)){
+for(haz.i in 1:length(hazard.id)){
   col.filter <- which(threshold.table$haz.name==hazard.name[haz.i])
-  exc.rate.mat <- as.matrix(all.mat[,col.filter])
+  exc.rate.mat <- as.matrix(grid.matrix[,col.filter])
   for(i in (ncol(exc.rate.mat) - 1L):1L){
     exc.rate.mat[,i] <- exc.rate.mat[,i] + exc.rate.mat[,i + 1]
   }
@@ -72,9 +79,9 @@ for(haz.i in 1:length(hazard.name)){
     filename <- paste("RP-Maps/", hazard.name[haz.i], "_", 
                       sprintf("%05.0f", map.rp.vec[er.i]), ".png", sep="") 
     png(filename, width = 2400, height = 1600, pointsize=48)
-    grid.index <- match(grid.id, vg.table$grid.id)
-    lat <- vg.table$lat[grid.index]
-    lon <- vg.table$lon[grid.index]
+    grid.index <- match(grid.id, grid.meta$grid.id)
+    lat <- grid.meta$lat[grid.index]
+    lon <- grid.meta$lon[grid.index]
     filter <- !is.â¦na(grid.index)
     lat <- lat[filter]
     lon <- lon[filter]

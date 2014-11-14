@@ -18,7 +18,7 @@ s3.output.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
 
 #s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
-  
+
 
 part.file <- s3.ls(s3.path = s3.input.path)
 part.file <- strsplit(part.file, split="/")

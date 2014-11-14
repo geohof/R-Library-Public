@@ -12,6 +12,7 @@
 \alias{s3.readRDS}
 \alias{s3.saveRDS}
 \alias{s3.source}
+\alias{s3.write.csv}
 \title{A suite of logging functions}
 \usage{
 s3.apply.put(s3.path, object, FUN, options)
@@ -35,6 +36,8 @@ s3.source(s3.path)
 s3.configure(access.key.id, secret.access.key)
 
 s3.ls(s3.path)
+
+s3.write.csv(s3.path, object, ...)
 }
 \arguments{
 \item{\dots}{%% ~~Describe \code{\dots} here~~}

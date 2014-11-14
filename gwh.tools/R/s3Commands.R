@@ -125,3 +125,14 @@ s3.ls <-
 		return(ls.table[,ncol(ls.table)])
 	}
 
+#' @export 
+#' @rdname s3Commands
+s3.write.csv <-
+  function(s3.path, object, ...){
+    tmp.file <- tempfile()
+    write.csv(object, file=tmp.file, ...)
+    s3.put(file = tmp.file, s3.path = s3.path)
+    unlink(tmp.file)
+  }
+
+

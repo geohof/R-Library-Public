@@ -29,8 +29,10 @@ LogLine("Discovered ", num.part, " partition files.")
 
 file.name <- "EventRate.csv"
 event.table <- s3.fread(paste(s3.profile.path, file.name, sep=""))
-event.id <- c(0L, event.table$val.event.id)
-event.rate <- c(0, event.table$rate)
+# event.id=-1 means event.id populated but not matched
+# event.id=0  means event.id not populated
+event.id <- c(-1L, 0L, event.table$val.event.id)
+event.rate <- c(0, 0, event.table$rate)
 num.event <- length(event.id)
 
 file.name <- "gll.csv"
@@ -95,6 +97,8 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     unmatched.event.id <- unique(egh$V1[tmp.filter])
     if(sum(tmp.filter) > 0L){
       warning("Some eventIDs couldn't be matched.")
+      # This will assign event.id=-1 meaning 
+      # "event.id populated but not matched"
       event.index[tmp.filter] <- 1L
     }
     
@@ -223,7 +227,7 @@ sum.mat <- sparseMatrix(dim = c(num.bucket, length(haz.id.vec)),
                         j = bucket.table$haz.id, 
                         x = 1)
 
-stop("Also need to output unmatched.event.id.")
+
 event.mat <- mat.list[[2]]
 
 

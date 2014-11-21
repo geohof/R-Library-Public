@@ -4,7 +4,7 @@ require(Matrix)
 
 options(stringsAsFactors = FALSE)
 
-s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/3-EGHwVALIDwLIQwFFE2/"
+s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/"
 s3.input.folder <- "EGHoriginal_PCADD"
 
 working.directory <- "~/data/"
@@ -72,7 +72,7 @@ for(haz.i in 1:nrow(hazard.meta)){
   EndTimedLog(log.start.seconds)
 
   color.threshold <- haz.threshold[-1]
-  round.col.thr <- round(color.threshold, 2)
+  round.col.thr <- round(color.threshold, 3 - ceiling(log(x = color.threshold, base = 10)))
   color.pal <- colorRampPalette(c("gray", "yellow", "red"))(length(color.threshold) + 1L)
   #rainbow(n=length(color.threshold) + 1L)
   
@@ -107,18 +107,19 @@ for(haz.i in 1:nrow(hazard.meta)){
         xlim = c(min(lon), max(lon) + 20), 
         ylim = c(min(lat), max(lat)))
     title(main = paste("VRISC ", hazard.meta$haz.name[haz.i], " at return period ", map.rp.vec[er.i],sep =""))
-    filter <- sample(x = length(lat), size = length(lat), replace = FALSE)
+    filter <- 1:length(lat)
+    # filter <- sample(x = length(lat), size = length(lat), replace = FALSE)
     #  filter <- sample(x = length(lat), size = 10000, replace = FALSE)
     points(lon[filter], lat[filter]
            , col=color.id[filter]
            , pch=19
            , cex=.2)
+    map(database = "world", add=TRUE) 
     legend(
       x="bottomright",
       legend = paste(c("", round.col.thr), "-", c(round.col.thr, "")),
       fill = color.pal
     )
-    map(database = "world", add=TRUE) 
     dev.off()
     s3.put(file = filename,
              s3.path = paste(s3.output.path, filename, sep=""))

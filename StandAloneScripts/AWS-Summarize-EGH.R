@@ -64,7 +64,7 @@ bucket.names <- paste("haz", bucket.table$haz.id,
 
 
 log.start.seconds <- BeginTimedLog("Creating cluster.")
-host.vector <- rep("localhost", 30)
+host.vector <- rep("localhost", 20)
 cl <- makeSOCKcluster(names=host.vector)
 registerDoParallel(cl)
 EndTimedLog(log.start.seconds)
@@ -73,6 +73,7 @@ EndTimedLog(log.start.seconds)
 
 #s3.input.path <- "s3://middleware-research/useq/EGH_FINAL_WLIQ_wFFE/EGH_FINAL_WLIQ_wFFE2.txt/"
 # partition.range <- 0L:999L
+#for(i in 1:5){
 #for(i in 1:num.part){
 tmp.out <- foreach(i=1:num.part) %dopar% {
   setwd(working.directory)
@@ -86,6 +87,11 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     #    EndTimedLog(log.start.seconds)    
     #    log.start.seconds <- BeginTimedLog("Loading file ", s3.file.name)
     egh <- fread(part.file[i], header = FALSE)
+    gc()
+    egh.class <- unlist(lapply(egh, class))
+    for(ii in which(egh.class=="character")){
+      egh[[ii]] <- as.numeric(egh[[ii]])
+    }      
     #    tmp.filter <- egh$V1 <= 2481006
     #    if(sum(tmp.filter)>0){
     #      warning("Removing events with RMS eventID.")
@@ -174,7 +180,7 @@ cl <- makeSOCKcluster(names=host.vector)
 registerDoParallel(cl)
 EndTimedLog(log.start.seconds)
 
-reduce.method <- c("add", "add", "unique")
+reduce.method <- c("add", "add", "concat")
 
 AggFiles <- function(file.in, file.out, num.out, working.directory, reduce.method){
   file.vec = list.files(pattern = file.in)
@@ -196,6 +202,8 @@ AggFiles <- function(file.in, file.out, num.out, working.directory, reduce.metho
             cum.mat.list[[iii]] <- cum.mat.list[[iii]] + mat.list[[iii]]
           }else if(reduce.method[iii]=="unique"){
             cum.mat.list[[iii]] <- unique(c(cum.mat.list[[iii]], mat.list[[iii]]))            
+          }else if(reduce.method[iii]=="concat"){
+            cum.mat.list[[iii]] <- rbind(cum.mat.list[[iii]], mat.list[[iii]])            
           }
         }
       }      
@@ -217,11 +225,16 @@ LogLine("Agg level 3 completed.")
 stopCluster(cl)
 
 file.name <- "OutputFinal00000.RDS"
-s3.put(file = file.name, 
-       s3.path = paste(s3.output.path, "ResultBin.RDS", sep=""), 
-       options = "-m binary/octet-stream")
-
 mat.list <- readRDS("OutputFinal00000.RDS")
+
+mat.list$hazard.meta <- unique(data.frame(haz.id=threshold.table$haz.id,
+                                          haz.name=threshold.table$haz.name))
+mat.list$event.meta <- data.frame(event.id, rate=event.rate)
+mat.list$grid.meta <- data.frame(grid.id, lat=c(NA, gll$lat), lon=c(NA, gll$lon))
+mat.list$bucket.meta <- bucket.table
+
+s3.saveRDS(s3.path = paste(s3.output.path, "ResultBin.RDS", sep=""),
+           object = mat.list)
 
 sum.mat <- sparseMatrix(dim = c(num.bucket, length(haz.id.vec)),
                         dimnames = list(bucket.names,
@@ -233,17 +246,16 @@ sum.mat <- sparseMatrix(dim = c(num.bucket, length(haz.id.vec)),
 
 event.mat <- mat.list[[2]]
 
-
 event.sum.mat <- event.mat %*% sum.mat
 event.rec.count <- event.sum.mat[,1]
 file.name <- "EventRecCount.csv"
-write.csv(data.frame(event.id = event.id, 
-                     grid.count = as.vector(event.rec.count)), file.name, row.names=FALSE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = data.frame(event.id = event.id, row.names=FALSE,
+                                 grid.count = as.vector(event.rec.count)), 
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "EventHazCount.csv"
-write.csv(as.matrix(event.mat), file.name, row.names=TRUE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = as.matrix(event.mat), 
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 grid.mat <- mat.list[[1]]
 
@@ -251,35 +263,32 @@ grid.mat <- mat.list[[1]]
 grid.sum.mat <- grid.mat %*% sum.mat
 grid.rate <- as.vector(grid.sum.mat[,1])
 file.name <- "GridRate.csv"
-write.csv(data.frame(grid.id, grid.rate), file.name, row.names=FALSE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = data.frame(grid.id, grid.rate), row.names=FALSE,
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "GridHazRate.csv"
-write.csv(as.matrix(grid.mat), file.name, row.names=TRUE)
-s3.put(file = file.name, s3.path = s3.output.path)
-
+s3.write.csv(object = as.matrix(grid.mat), 
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "EventMeta.csv"
-write.csv(data.frame(event.id, rate=event.rate), file.name, row.names=FALSE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = mat.list$event.meta, row.names=FALSE,
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "GridMeta.csv"
-write.csv(data.frame(grid.id, lat=c(NA, gll$lat), lon=c(NA, gll$lon)), file.name, row.names=FALSE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = mat.list$grid.meta, row.names=FALSE,
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "BucketMeta.csv"
-write.csv(bucket.table, file.name, row.names=FALSE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = mat.list$bucket.meta, row.names=FALSE,
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "HazardMeta.csv"
-write.csv(unique(data.frame(haz.id=threshold.table$haz.id,
-                            haz.name=threshold.table$haz.name)), 
-          file.name, row.names=FALSE)
-s3.put(file = file.name, s3.path = s3.output.path)
+s3.write.csv(object = mat.list$hazard.meta, row.names=FALSE,
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
-#write.csv(as.matrix(fin.mat), "resultAll.csv")
-#system("s3cmd put resultAll.csv s3://middleware-research/TEMP_Georg/") 
-
+file.name <- "PartEvent.csv"
+s3.write.csv(object = mat.list$part.event, row.names=FALSE,
+             s3.path = paste(s3.output.path, file.name, sep=""))
 
 
-stopCluster(cl)
+

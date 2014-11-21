@@ -7,7 +7,7 @@ require(Rcpp)
 require(dplyr)
 require(Matrix)
 
-s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/3-EGHwVALIDwLIQwFFE2/"
+s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/"
 s3.input.folder <- "EGHoriginal_PCADD"
 
 working.directory <- "~/data/"
@@ -16,6 +16,7 @@ setwd(working.directory)
 s3.input.path <- paste(s3.data.path, s3.input.folder, "/", sep="")
 s3.output.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
 
+#s3.get(out.file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 #s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
 
@@ -25,8 +26,11 @@ part.file <- strsplit(part.file, split="/")
 part.file <- unlist(lapply(part.file, FUN = function(x)x[length(x)]))
 part.file <- part.file[grep(s3.file.pattern, part.file)]
 num.part <- length(part.file)
+part.id <- unlist(as.numeric(
+  lapply(strsplit(part.file, split = "-"), FUN = function(x) x[length(x)])))
 LogLine("Discovered ", num.part, " partition files.")
-
+LogLine("Partition identifier ranges from ", min(part.id),
+        " to ", max(part.id))
 file.name <- "EventRate.csv"
 event.table <- s3.fread(paste(s3.profile.path, file.name, sep=""))
 # event.id=-1 means event.id populated but not matched
@@ -58,7 +62,6 @@ bucket.table <- cbind(bucket.table, bucket.to = c(bucket.table$bucket.from[2:num
 bucket.names <- paste("haz", bucket.table$haz.id, 
                       "-buc", bucket.table$bucket.id, sep = "")
 
-working.directory <- getwd()
 
 log.start.seconds <- BeginTimedLog("Creating cluster.")
 host.vector <- rep("localhost", 30)
@@ -94,7 +97,7 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     
     event.index <- match(egh$V1, event.id)
     tmp.filter <- is.na(event.index)
-    unmatched.event.id <- unique(egh$V1[tmp.filter])
+    part.event <- data.frame(part.id = part.id[i], event.id = unique(egh$V1))
     if(sum(tmp.filter) > 0L){
       warning("Some eventIDs couldn't be matched.")
       # This will assign event.id=-1 meaning 
@@ -154,7 +157,7 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     }
     saveRDS(list(grid.matrix=cum.grid.matrix, 
                  event.matrix=cum.event.matrix,
-                 unmatched.event.id=unmatched.event.id), out.file.name)
+                 part.event=part.event), out.file.name)
     file.remove(part.file[i])
   }
 }

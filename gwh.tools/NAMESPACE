@@ -3,6 +3,7 @@
 export(BeginTimedLog)
 export(CreateKMZ)
 export(EndTimedLog)
+export(GetOEP)
 export(LogLine)
 export(MapDots)
 export(UpdateLogPercent)

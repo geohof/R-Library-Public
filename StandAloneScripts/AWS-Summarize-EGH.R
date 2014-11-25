@@ -230,7 +230,9 @@ mat.list <- readRDS("OutputFinal00000.RDS")
 mat.list$hazard.meta <- unique(data.frame(haz.id=threshold.table$haz.id,
                                           haz.name=threshold.table$haz.name))
 mat.list$event.meta <- data.frame(event.id, rate=event.rate)
-mat.list$grid.meta <- data.frame(grid.id, lat=c(NA, gll$lat), lon=c(NA, gll$lon))
+first.row <- matrix(data=c(0, rep(NA, ncol(gll) - 1L)), nrow=1L)
+colnames(first.row) <- colnames(gll)
+mat.list$grid.meta <- data.frame(rbind(data.frame(first.row), gll)))
 mat.list$bucket.meta <- bucket.table
 
 s3.saveRDS(s3.path = paste(s3.output.path, "ResultBin.RDS", sep=""),

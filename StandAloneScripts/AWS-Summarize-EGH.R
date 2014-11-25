@@ -64,7 +64,7 @@ bucket.names <- paste("haz", bucket.table$haz.id,
 
 
 log.start.seconds <- BeginTimedLog("Creating cluster.")
-host.vector <- rep("localhost", 20)
+host.vector <- rep("localhost", 10)
 cl <- makeSOCKcluster(names=host.vector)
 registerDoParallel(cl)
 EndTimedLog(log.start.seconds)
@@ -87,7 +87,6 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
     #    EndTimedLog(log.start.seconds)    
     #    log.start.seconds <- BeginTimedLog("Loading file ", s3.file.name)
     egh <- fread(part.file[i], header = FALSE)
-    gc()
     egh.class <- unlist(lapply(egh, class))
     for(ii in which(egh.class=="character")){
       egh[[ii]] <- as.numeric(egh[[ii]])
@@ -165,6 +164,8 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
                  event.matrix=cum.event.matrix,
                  part.event=part.event), out.file.name)
     file.remove(part.file[i])
+    remove("egh")
+    gc()
   }
 }
 
@@ -251,8 +252,9 @@ event.mat <- mat.list[[2]]
 event.sum.mat <- event.mat %*% sum.mat
 event.rec.count <- event.sum.mat[,1]
 file.name <- "EventRecCount.csv"
-s3.write.csv(object = data.frame(event.id = event.id, row.names=FALSE,
+s3.write.csv(object = data.frame(event.id = event.id, 
                                  grid.count = as.vector(event.rec.count)), 
+             row.names=FALSE,
              s3.path = paste(s3.output.path, file.name, sep=""))
 
 file.name <- "EventHazCount.csv"

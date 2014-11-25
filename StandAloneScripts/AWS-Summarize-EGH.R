@@ -8,7 +8,7 @@ require(dplyr)
 require(Matrix)
 
 s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/"
-s3.input.folder <- "EGHoriginal_PCADD"
+s3.input.folder <- "EGHoriginal_PCADD_noNulls_HazardTrunc"
 
 working.directory <- "~/data/"
 setwd(working.directory)
@@ -232,7 +232,7 @@ mat.list$hazard.meta <- unique(data.frame(haz.id=threshold.table$haz.id,
 mat.list$event.meta <- data.frame(event.id, rate=event.rate)
 first.row <- matrix(data=c(0, rep(NA, ncol(gll) - 1L)), nrow=1L)
 colnames(first.row) <- colnames(gll)
-mat.list$grid.meta <- data.frame(rbind(data.frame(first.row), gll)))
+mat.list$grid.meta <- data.frame(rbind(data.frame(first.row), gll))
 mat.list$bucket.meta <- bucket.table
 
 s3.saveRDS(s3.path = paste(s3.output.path, "ResultBin.RDS", sep=""),

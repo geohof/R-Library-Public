@@ -7,8 +7,8 @@ require(Rcpp)
 require(dplyr)
 require(Matrix)
 
-s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/"
-s3.input.folder <- "EGHoriginal_PCADD_noNulls_HazardTrunc"
+s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/EGHoriginal_PCADD_noNulls_HazardTrunc_Adjusted/"
+s3.input.folder <- "Data"
 
 working.directory <- "~/data/"
 setwd(working.directory)
@@ -18,7 +18,7 @@ s3.output.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
 
 #s3.get(out.file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 #s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
-s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
+s3.source(s3.path = paste(s3.data.path, "Config.R", sep = ""))
 
 
 part.file <- s3.ls(s3.path = s3.input.path)

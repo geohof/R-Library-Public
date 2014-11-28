@@ -62,14 +62,14 @@ LogLine("Removing ", sum(f), " county level grid.ids.")
 grid.lookup <- grid.lookup[!f,]
 
 log.start.seconds <- BeginTimedLog("Creating cluster.")
-host.vector <- rep("localhost", 20)
+host.vector <- rep("localhost", 30)
 cl <- makeSOCKcluster(names=host.vector)
 registerDoParallel(cl)
 EndTimedLog(log.start.seconds)
 
 
 # partition.range <- 0L:999L
-#for(i in 1:5){
+#for(i in 5:5){
 #for(i in 1:num.part){
 tmp.out <- foreach(i=1:num.part) %dopar% {
   setwd(working.directory)
@@ -84,17 +84,16 @@ tmp.out <- foreach(i=1:num.part) %dopar% {
   egh[na.filter] <- 0
     
   usgs.grid.index <- match(egh$V2, grid.lookup$grid.id1)
-  tmp.filter <- is.na(usgs.grid.index)
+  tmp.filter <- !is.na(usgs.grid.index)
   filtered.grid.index <- usgs.grid.index[tmp.filter]
 
   for(factor.i in 1L:length(factor.list)){
     col.i <- factor.i + 3L # (Skip event.id, grid.id, MMI)
-    egh[[col.i]][tmp.filter] <- egh[[col.i]][tmp.filter] *
-      factor.list[[factor.i]][filtered.grid.index]
+    egh[[col.i]][tmp.filter] <- round(egh[[col.i]][tmp.filter] *
+      factor.list[[factor.i]][filtered.grid.index], 3)
   }
-  
-  s3.write.table(s3.path=paste(s3.output.path, part.file[i], sep=""), 
-               object = egh, row.names=FALSE, col.names=FALSE)
+  s3.write.table(s3.path=paste(s3.output.path, "Data/", part.file[i], sep=""), 
+               object = egh, row.names=FALSE, col.names=FALSE, sep=",")
   remove("egh")
   gc()
 }

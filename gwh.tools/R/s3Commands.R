@@ -115,15 +115,16 @@ s3.configure <-
 
 #' @export 
 #' @rdname s3Commands
-s3.ls <-
-	function(s3.path){
-		tmp.file <- tempfile()
-		s3.cmd <- paste("s3cmd ls ", s3.path, "> ", tmp.file, sep="")
-		system(s3.cmd)
-		ls.table <- read.table(tmp.file, header = FALSE, stringsAsFactors=FALSE)    
-		unlink(tmp.file)
-		return(ls.table[,ncol(ls.table)])
-	}
+s3.ls <- function (s3.path){
+  tmp.file <- tempfile()
+  s3.cmd <- paste("s3cmd ls ", s3.path, "> ", tmp.file, sep = "")
+  system(s3.cmd)
+  ls.table <- readLines(tmp.file)
+  unlink(tmp.file)
+  return(unlist(lapply(strsplit(x = ls.table, split = " "), 
+                       FUN = function(x)x[length(x)])))
+}
+
 
 #' @export 
 #' @rdname s3Commands

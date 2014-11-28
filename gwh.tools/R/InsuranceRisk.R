@@ -4,7 +4,7 @@
 #' 
 #' %% ~~ If necessary, more details than the description above ~~
 #' 
-#' @name Geographic Mapping
+#' @name Insurance Risk
 #' @param \dots %% ~~Describe \code{\dots} here~~
 #' @note %% ~~further notes~~
 #' @author %% ~~who you are~~
@@ -29,7 +29,9 @@
 
 #' @export 
 #' @rdname InsuranceRisk
-GetOEP<-function(rate, loss, prob, method="Poisson"){
+GetOEP<-function(rate, loss, 
+                 prob=1 / c(1000, 500, 250, 200, 100, 50, 25, 20, 10), 
+                 method="Poisson"){
   o<-order(loss, decreasing=TRUE)
   rate<-rate[o]
   loss<-loss[o]
@@ -39,5 +41,8 @@ GetOEP<-function(rate, loss, prob, method="Poisson"){
   }else if(method=="Bernoulli"){
     cum.prob <- cum.rate
   }    
-  approx(x=cum.prob, y=loss, xout=prob, yleft=max(loss),yright=0)$y
+  data.frame(
+    prob=prob,
+    rp=1 / prob,
+    loss=approx(x=cum.prob, y=loss, xout=prob, yleft=max(loss),yright=0)$y)
 }

@@ -62,234 +62,45 @@ LogLine("Removing ", sum(f), " county level grid.ids.")
 grid.lookup <- grid.lookup[!f,]
 
 log.start.seconds <- BeginTimedLog("Creating cluster.")
-host.vector <- rep("localhost", 10)
+host.vector <- rep("localhost", 20)
 cl <- makeSOCKcluster(names=host.vector)
 registerDoParallel(cl)
 EndTimedLog(log.start.seconds)
 
-### Continue HERE:
 
 # partition.range <- 0L:999L
-for(i in 1:5){
+#for(i in 1:5){
 #for(i in 1:num.part){
-#tmp.out <- foreach(i=1:num.part) %dopar% {
+tmp.out <- foreach(i=1:num.part) %dopar% {
   setwd(working.directory)
   require(data.table)
-  require(Matrix)
-  require(dplyr)
-  out.file.name <- sprintf("Output-%05.f.RDS", i)
-  if(!file.exists(out.file.name)){
-    #    log.start.seconds <- BeginTimedLog("Getting file ", s3.file.name)
-    system(paste("s3cmd get ", s3.input.path, part.file[i], sep="")) 
-    #    EndTimedLog(log.start.seconds)    
-    #    log.start.seconds <- BeginTimedLog("Loading file ", s3.file.name)
-    egh <- fread(part.file[i], header = FALSE)
-    egh.class <- unlist(lapply(egh, class))
-    for(ii in which(egh.class=="character")){
-      egh[[ii]] <- as.numeric(egh[[ii]])
-    }      
-    #    tmp.filter <- egh$V1 <= 2481006
-    #    if(sum(tmp.filter)>0){
-    #      warning("Removing events with RMS eventID.")
-    #      egh <- egh[!tmp.filter]
-    #    }
-    #    EndTimedLog(log.start.seconds)
-    na.filter <- is.na(egh)
-    egh[na.filter] <- 0
-    
-    event.index <- match(egh$V1, event.id)
-    tmp.filter <- is.na(event.index)
-    part.event <- data.frame(part.id = part.id[i], event.id = unique(egh$V1))
-    if(sum(tmp.filter) > 0L){
-      warning("Some eventIDs couldn't be matched.")
-      # This will assign event.id=-1 meaning 
-      # "event.id populated but not matched"
-      event.index[tmp.filter] <- 1L
-    }
-    
-    grid.index <- match(egh$V2, grid.id)
-    tmp.filter <- is.na(grid.index)
-    if(sum(tmp.filter)>0){
-      warning("Some gridIDs couldn't be matched.")
-      grid.index[tmp.filter] <- 1L
-    }
-    
-    cum.grid.matrix <- sparseMatrix(dims = c(num.grid, length(bucket.names)),
-                                    dimnames = list(grid.id, bucket.names),
-                                    i=integer(0),
-                                    j=integer(0),
-                                    x=numeric(0))
-    cum.event.matrix <- sparseMatrix(dims = c(num.event, length(bucket.names)),
-                                     dimnames = list(event.id, bucket.names),
-                                     i=integer(0),
-                                     j=integer(0),
-                                     x=numeric(0))
-    
-    for(haz.id in haz.id.vec){
-      threhold.index <- which(threshold.table$haz.id==haz.id)
-      threshold.vec <- threshold.table$haz.val[threhold.index]
-      j.offset <- min(which(bucket.table$haz.id==haz.id))
-      wc <- findInterval(x = egh[[2L+haz.id]], vec = threshold.vec)
-      
-      
-      grid.group.table <- group_by(data.table(grid.index, 
-                                              hazard.bucket = wc, 
-                                              rate = event.rate[event.index]), grid.index, hazard.bucket)
-      grid.agg.table <- summarise(grid.group.table, sum(rate))
-      setnames(x = grid.agg.table, old = "sum(rate)", "rate")
-      tmp.grid.matrix <- sparseMatrix(dims = c(num.grid, length(bucket.names)),
-                                      dimnames = list(grid.id, bucket.names),
-                                      i = grid.agg.table$grid.index, 
-                                      j = grid.agg.table$hazard.bucket + j.offset,
-                                      x = grid.agg.table$rate)
-      cum.grid.matrix <- cum.grid.matrix + tmp.grid.matrix
-      
-      
-      event.group.table <- group_by(data.table(event.index, 
-                                               hazard.bucket = wc, 
-                                               count = 1), event.index, hazard.bucket)
-      event.agg.table <- summarise(event.group.table, sum(count))
-      setnames(x = event.agg.table, old = "sum(count)", "count")
-      tmp.event.matrix <- sparseMatrix(dims = c(num.event, length(bucket.names)),
-                                       dimnames = list(event.id, bucket.names),
-                                       i = event.agg.table$event.index, 
-                                       j = event.agg.table$hazard.bucket + j.offset,
-                                       x = event.agg.table$count)
-      cum.event.matrix <- cum.event.matrix + tmp.event.matrix
-    }
-    saveRDS(list(grid.matrix=cum.grid.matrix, 
-                 event.matrix=cum.event.matrix,
-                 part.event=part.event), out.file.name)
-    file.remove(part.file[i])
-    remove("egh")
-    gc()
+  require(gwh.tools)
+  egh <- s3.fread(s3.path=paste(s3.input.path, part.file[i], sep="")) 
+  egh.class <- unlist(lapply(egh, class))
+  for(ii in which(egh.class=="character")){
+    egh[[ii]] <- as.numeric(egh[[ii]])
   }
+  na.filter <- is.na(egh)
+  egh[na.filter] <- 0
+    
+  usgs.grid.index <- match(egh$V2, grid.lookup$grid.id1)
+  tmp.filter <- is.na(usgs.grid.index)
+  filtered.grid.index <- usgs.grid.index[tmp.filter]
+
+  for(factor.i in 1L:length(factor.list)){
+    col.i <- factor.i + 3L # (Skip event.id, grid.id, MMI)
+    egh[[col.i]][tmp.filter] <- egh[[col.i]][tmp.filter] *
+      factor.list[[factor.i]][filtered.grid.index]
+  }
+  
+  s3.write.table(s3.path=paste(s3.output.path, part.file[i], sep=""), 
+               object = egh, row.names=FALSE, col.names=FALSE)
+  remove("egh")
+  gc()
 }
 
 LogLine("Big Data Process completed.")
 
-LogLine("Files created: ", length(list.files(pattern = "Output-.*")))
 
 stopCluster(cl)
-
-log.start.seconds <- BeginTimedLog("Creating cluster.")
-host.vector <- rep("localhost", 10)
-cl <- makeSOCKcluster(names=host.vector)
-registerDoParallel(cl)
-EndTimedLog(log.start.seconds)
-
-reduce.method <- c("add", "add", "concat")
-
-AggFiles <- function(file.in, file.out, num.out, working.directory, reduce.method){
-  file.vec = list.files(pattern = file.in)
-  num.in <- length(file.vec)
-  threshold.vec <- seq(from = 1, to = num.in + 1L, length.out = num.out + 1L)
-  partition.vec <- findInterval(x = 1:num.in, threshold.vec)
-  tmp.out <- foreach(i=1:num.out) %dopar% {
-    setwd(working.directory)
-    require(Matrix)
-    is.first=TRUE
-    for(ii in which(partition.vec==i)){
-      if(is.first){
-        cum.mat.list <- readRDS(file.vec[ii])
-        is.first <- FALSE
-      }else{
-        mat.list  <- readRDS(file.vec[ii])
-        for(iii in 1:length(mat.list)){
-          if(reduce.method[iii]=="add"){
-            cum.mat.list[[iii]] <- cum.mat.list[[iii]] + mat.list[[iii]]
-          }else if(reduce.method[iii]=="unique"){
-            cum.mat.list[[iii]] <- unique(c(cum.mat.list[[iii]], mat.list[[iii]]))            
-          }else if(reduce.method[iii]=="concat"){
-            cum.mat.list[[iii]] <- rbind(cum.mat.list[[iii]], mat.list[[iii]])            
-          }
-        }
-      }      
-    }
-    saveRDS(cum.mat.list, paste(file.out, sprintf("%05.f.RDS", i - 1L), sep=""))
-  }
-}
-
-AggFiles(file.in = "Output-.*", file.out = "Out1-", num.out = 100, 
-         working.directory, reduce.method = reduce.method)
-LogLine("Agg level 1 completed.")
-AggFiles(file.in = "Out1-.*", file.out = "Out2-", num.out = 5, 
-         working.directory, reduce.method = reduce.method)
-LogLine("Agg level 2 completed.")
-AggFiles(file.in = "Out2-.*", file.out = "OutputFinal", num.out = 1, 
-         working.directory, reduce.method = reduce.method)
-LogLine("Agg level 3 completed.")
-
-stopCluster(cl)
-
-file.name <- "OutputFinal00000.RDS"
-mat.list <- readRDS("OutputFinal00000.RDS")
-
-mat.list$hazard.meta <- unique(data.frame(haz.id=threshold.table$haz.id,
-                                          haz.name=threshold.table$haz.name))
-mat.list$event.meta <- data.frame(event.id, rate=event.rate)
-first.row <- matrix(data=c(0, rep(NA, ncol(gll) - 1L)), nrow=1L)
-colnames(first.row) <- colnames(gll)
-mat.list$grid.meta <- data.frame(rbind(data.frame(first.row), gll))
-mat.list$bucket.meta <- bucket.table
-
-s3.saveRDS(s3.path = paste(s3.output.path, "ResultBin.RDS", sep=""),
-           object = mat.list)
-
-sum.mat <- sparseMatrix(dim = c(num.bucket, length(haz.id.vec)),
-                        dimnames = list(bucket.names,
-                                        paste("haz", haz.id.vec, sep="")),
-                        i = 1:num.bucket, 
-                        j = bucket.table$haz.id, 
-                        x = 1)
-
-
-event.mat <- mat.list[[2]]
-
-event.sum.mat <- event.mat %*% sum.mat
-event.rec.count <- event.sum.mat[,1]
-file.name <- "EventRecCount.csv"
-s3.write.csv(object = data.frame(event.id = event.id, 
-                                 grid.count = as.vector(event.rec.count)), 
-             row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "EventHazCount.csv"
-s3.write.csv(object = as.matrix(event.mat), 
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-grid.mat <- mat.list[[1]]
-
-
-grid.sum.mat <- grid.mat %*% sum.mat
-grid.rate <- as.vector(grid.sum.mat[,1])
-file.name <- "GridRate.csv"
-s3.write.csv(object = data.frame(grid.id, grid.rate), row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "GridHazRate.csv"
-s3.write.csv(object = as.matrix(grid.mat), 
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "EventMeta.csv"
-s3.write.csv(object = mat.list$event.meta, row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "GridMeta.csv"
-s3.write.csv(object = mat.list$grid.meta, row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "BucketMeta.csv"
-s3.write.csv(object = mat.list$bucket.meta, row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "HazardMeta.csv"
-s3.write.csv(object = mat.list$hazard.meta, row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-file.name <- "PartEvent.csv"
-s3.write.csv(object = mat.list$part.event, row.names=FALSE,
-             s3.path = paste(s3.output.path, file.name, sep=""))
-
-
 

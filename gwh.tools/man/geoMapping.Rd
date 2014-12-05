@@ -11,7 +11,8 @@ MapDots(lon, lat, val, val.bucket = seq(from = min(val), to = max(val),
   leg.dec = as.integer(2 - log(min(val), base = 10)),
   leg.bucket = round(val.bucket, leg.dec),
   leg.txt = paste(leg.bucket[1:(length(val.bucket) - 1L)], "-",
-  leg.bucket[2:length(val.bucket)]), file.name, title.str)
+  leg.bucket[2:length(val.bucket)]), file.name, title.str,
+  leg.x = "bottomright", change.order = TRUE)
 
 CreateKMZ(grid.matrix, grid.col, val.min = min(grid.matrix),
   val.max = max(grid.matrix), file.path = "", file.name.base, overlay.name,

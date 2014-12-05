@@ -37,8 +37,14 @@ MapDots <-
            leg.dec = as.integer(2 - log(min(val), base=10)),
            leg.bucket = round(val.bucket, leg.dec),
            leg.txt = paste(leg.bucket[1:(length(val.bucket) - 1L)], "-", leg.bucket[2:length(val.bucket)]),
-           file.name, title.str
+           file.name, title.str, leg.x="bottomright", change.order=TRUE
   ){
+    if(change.order){
+      o <- order(abs(val - median(val)))
+      lat <- lat[o]
+      lon <- lon[o]
+      val <- val[o]
+    }
     if(!missing("file.name")){
       png(file.name, width = 2400, height = 1600, pointsize=48)
     }
@@ -59,7 +65,7 @@ MapDots <-
       title(main = title.str)
     }
     legend(
-      x="bottomright",
+      x=leg.x,
       legend = leg.txt,
       fill = col)
     if(!missing("file.name")){

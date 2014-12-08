@@ -4,8 +4,8 @@ require(Matrix)
 
 options(stringsAsFactors = FALSE)
 
-s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/"
-s3.input.folder <- "EGHoriginal_PCADD"
+s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/EGHoriginal_PCADD_noNulls_HazardTrunc_Adjusted/"
+s3.input.folder <- "Data"
 
 working.directory <- "~/data/"
 setwd(working.directory)
@@ -39,8 +39,20 @@ bucket.table <- s3.read.csv(s3.path = paste(s3.input.path, "BucketMeta.csv", sep
 
 num.records <- nrow(grid.matrix)
 
+log.start.seconds <- BeginTimedLog("Creating cluster.")
+host.vector <- rep("localhost", 10)
+cl <- makeSOCKcluster(names=host.vector)
+registerDoParallel(cl)
+EndTimedLog(log.start.seconds)
 
-for(haz.i in 1:nrow(hazard.meta)){
+#for(haz.i in 1:nrow(hazard.meta)){
+foreach(haz.i=1:nrow(hazard.meta)) %dopar% {
+  working.directory <- "~/data/"
+  
+  require(maps) # install.packages("maps")
+  require(gwh.tools)
+  require(Matrix)
+  
   col.filter <- which(bucket.table$haz.id==hazard.meta$haz.id[haz.i])
   exc.rate.mat <- as.matrix(grid.matrix[,col.filter])
   for(i in (ncol(exc.rate.mat) - 1L):1L){
@@ -126,3 +138,4 @@ for(haz.i in 1:nrow(hazard.meta)){
   }
 }
 
+stopCluster(cl)

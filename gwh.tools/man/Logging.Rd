@@ -11,12 +11,12 @@ BeginTimedLog(...)
 
 LogLine(...)
 
-EndTimedLog(log.start.seconds, ...)
+EndTimedLog(log.obj, ...)
 
-UpdateLogPercent(percent)
+UpdateLogPercent(log.obj, percent)
 }
 \arguments{
-\item{\dots}{%% ~~Describe \code{\dots} here~~}
+\item{log.obj}{Describe \code{log.obj} here}
 }
 \value{
 Function used for logging. Default is standard output.
@@ -32,16 +32,16 @@ Includes linefeed and carriage return to terminate the line.
 %% ~~further notes~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (...)
-{
-    cat(format(Sys.time(), "\%H-\%M-\%S"), ": ", ..., "  ...", sep = "")
-    return(unclass(Sys.time()))
+### Calculating squares
+log.obj <- BeginTimedLog("Calculating squares.")
+n <- 1E3
+for(i in 1:n){
+  for(ii in 1:10000){
+    i^2
   }
+  log.obj <- UpdateLogPercent(log.obj, percent = 100 * i / n)
+}
+EndTimedLog(log.obj)
 }
 \author{
 %% ~~who you are~~

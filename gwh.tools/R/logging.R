@@ -7,7 +7,7 @@
 #' @name Logging Functions
 #' @aliases EndTimedLog
 #' @aliases LogLine
-#' @param \dots %% ~~Describe \code{\dots} here~~
+#' @param log.obj Describe \code{log.obj} here
 #' @return 
 #' Function used for logging. Default is standard output. 
 #' Includes linefeed and carriage return to terminate the line.
@@ -16,20 +16,19 @@
 #' @seealso %% ~~objects to See Also as \code{\link{help}}, ~~~
 #' @references %% ~put references to the literature/web site here ~
 #' @keywords ~kwd1 ~kwd2
+
+#' @export
 #' @examples
-#' 
-#' ##---- Should be DIRECTLY executable !! ----
-#' ##-- ==>  Define data, use random,
-#' ##--	or do  help(data=index)  for the standard data sets.
-#' 
-#' ## The function is currently defined as
-#' function (...) 
-#' {
-#'     cat(format(Sys.time(), "%H-%M-%S"), ": ", ..., "  ...", sep = "")
-#'     return(unclass(Sys.time()))
+#' ### Calculating squares
+#' log.obj <- BeginTimedLog("Calculating squares.")
+#' n <- 1E3
+#' for(i in 1:n){
+#'   for(ii in 1:10000){
+#'     i^2
 #'   }
-#' 
-#' 
+#'   log.obj <- UpdateLogPercent(log.obj, percent = 100 * i / n)
+#' }
+#' EndTimedLog(log.obj)
 
 
 #' @export 
@@ -38,8 +37,8 @@ BeginTimedLog <-
 function(...){
 # This command is used together with EndTimedLog(). Its return value has to be
 # passed to EndTimedLog().
-  cat(format(Sys.time(), "%H-%M-%S"), ": ", ... ,"  ...", sep="")
-  return(unclass(Sys.time()))
+  cat(format(Sys.time(), "%H-%M-%S"), ": ", ... ," ....", sep="")
+  return(list(start.seconds=unclass(Sys.time())))
 }
 
 #' @export 
@@ -51,23 +50,24 @@ LogLine <- function(...){
 #' @export 
 #' @rdname Logging
 EndTimedLog <-
-  function(log.start.seconds, ...){
+  function(log.obj, ...){
     ### At the end of a block of code. Used together with MyLogBegin().
     cat(" done. (", 
-        as.integer(unclass(Sys.time()) - log.start.seconds), 
+        as.integer(unclass(Sys.time()) - log.obj$start.seconds), 
         " secs)\r\n", sep="")
   }
 
 #' @export 
 #' @rdname Logging
-UpdateLogPercent <-
-  function(percent){
-    if(!exists("UpdateLogPercent.percent")){
-      UpdateLogPercent.percent <<-101
-    }
-    if(UpdateLogPercent.percent!=as.integer(percent)){
-      UpdateLogPercent.percent <<- as.integer(percent)
-      percentStr<-paste(UpdateLogPercent.percent,"%",sep="")
-      cat(rep("\b",nchar(percentStr)),percentStr,sep="")
-    }
+UpdateLogPercent <- function(log.obj, percent){
+  if(!("percent.complete" %in% names(log.obj))){
+    log.obj$percent.complete <- -1
   }
+  if(floor(log.obj$percent.complete) < floor(percent)){
+    cat(rep("\b", 4L),sprintf("%3.0f",floor(percent)), "%", sep="")
+  }
+  log.obj$percent.complete <- percent
+  return(log.obj)
+}
+
+

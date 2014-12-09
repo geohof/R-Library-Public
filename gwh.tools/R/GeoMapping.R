@@ -40,44 +40,49 @@ MapDots <- function(
                   "-", leg.bucket[2:length(val.bucket)]),
   file.name, title.str, leg.x="bottomright", 
   map.database="world", map.regions, map.lwd = 3,
-  change.order=TRUE
+  change.order=TRUE, point.cex = 0.5
   ){
-    if(change.order){
-      o <- order(abs(val - median(val)))
-      lat <- lat[o]
-      lon <- lon[o]
-      val <- val[o]
-    }
-    if(!missing("file.name")){
-      png(file.name, width = 2400, height = 1600, pointsize=48)
-    }
-
-    num.bucket <- length(val.bucket) - 1L
-    if(missing(map.regions)){
-      map(database = map.database, 
-          xlim = c(min(lon), max(lon)), 
-          ylim = c(min(lat), max(lat)))
-    }else{
-      map(database = map.database, regions = map.regions)
-    }      
-    
-    val.col <- col[pmax(1L, pmin(findInterval(val, val.bucket), num.bucket))]
-    points(lon, lat
-           , col=val.col
-           , pch=19
-           , cex=.5)
-    map(database = map.database, add=TRUE, lwd = map.lwd) 
-    if(!missing("title.str")){
-      title(main = title.str)
-    }
-    legend(
-      x=leg.x,
-      legend = leg.txt,
-      fill = col)
-    if(!missing("file.name")){
-      dev.off()
-    }
+  val.index <- findInterval(val, val.bucket)
+  filter <- (val.index>0) & (val.index < length(val.bucket))
+  lat <- lat[filter]
+  lon <- lon[filter]
+  val <- val[filter]
+  
+  if(change.order){
+    o <- order(abs(val - median(val)))
+    lat <- lat[o]
+    lon <- lon[o]
+    val <- val[o]
   }
+
+  if(!missing("file.name")){
+    png(file.name, width = 2400, height = 1600, pointsize=48)
+  }
+
+  if(missing(map.regions)){
+    map(database = map.database, 
+        xlim = c(min(lon), max(lon)), 
+        ylim = c(min(lat), max(lat)))
+  }else{
+    map(database = map.database, regions = map.regions)
+  }      
+  val.index <- findInterval(val, val.bucket)
+  points(lon, lat
+         , col=col[val.index]
+         , pch=19
+         , cex=point.cex)
+  map(database = map.database, add=TRUE, lwd = map.lwd) 
+  if(!missing("title.str")){
+    title(main = title.str)
+  }
+  legend(
+    x=leg.x,
+    legend = leg.txt,
+    fill = col)
+  if(!missing("file.name")){
+    dev.off()
+  }
+}
 
 
 #' @export 

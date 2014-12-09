@@ -4,34 +4,43 @@ require(Matrix)
 
 options(stringsAsFactors = FALSE)
 
+event.id <- 10080081
 s3.data.path <- "s3://middleware-research/useq/EGH-NEW3/4-EGHwVALIDwLIQwFFE2wUSONLY/EGHoriginal_PCADD_noNulls_HazardTrunc_Adjusted/"
 s3.input.folder <- "Data"
 
 working.directory <- "~/data/"
 setwd(working.directory)
 
-s3.input.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
+s3.input.path <- paste(s3.data.path, s3.input.folder, "/", sep="")
+s3.meta.path <- paste(s3.data.path, s3.input.folder, "_Meta/", sep="")
 s3.output.path <- paste(s3.data.path, s3.input.folder, "_Vis/", sep="")
 
 #s3.put(file = "~/Config.R", s3.path = paste(s3.output.path, "Config.R", sep=""))
 #s3.source(s3.path = paste(s3.output.path, "Config.R", sep = ""))
 
-part.event <- s3.read.csv(s3.path = paste(s3.input.path, "PartEvent.csv", sep=""))
+part.event <- s3.read.csv(s3.path = paste(s3.meta.path, "PartEvent.csv", sep=""))
 
-which.part <- which(10080081==part.event$event.id)
+which.part <- which(event.id==part.event$event.id)
 if(length(which.part)!=1)stp("Trouble finding single partition.")
 which.part.id <- part.event$part.id[which.part]
 
-Continue here
+egh <- s3.fread(s3.path=
+  paste(s3.input.path, "part-", sprintf("%05.f", which.part.id), sep="")) 
+egh.class <- unlist(lapply(egh, class))
+for(ii in which(egh.class=="character")){
+  egh[[ii]] <- as.numeric(egh[[ii]])
+}
+na.filter <- is.na(egh)
+egh[na.filter] <- 0
 
+egh <- egh[egh$V1==event.id]
 
-result.list <- s3.readRDS(s3.path = paste(s3.input.path, "ResultBin.RDS", sep=""))
-grid.matrix <- result.list$grid.matrix
-grid.meta <- s3.read.csv(s3.path = paste(s3.input.path, "GridMeta.csv", sep=""))
-grid.filter <- grid.meta$grid.id>0
-grid.meta <- grid.meta[grid.filter,] 
-grid.matrix <- grid.matrix[grid.filter,] 
-grid.id <- grid.meta$grid.id
+grid.meta <- s3.read.csv(s3.path = paste(s3.meta.path, "GridMeta.csv", sep=""))
+
+m <- match(egh$V2, grid.meta$grid.id)
+if(sum(is.na(m))>0)stop("Grid mismatches.")
+MapDots(lon = grid.meta$lon[m], lat = grid.meta$lat[m],
+        val = egh$V3)
 
 hazard.meta <- s3.read.csv(s3.path = paste(s3.input.path, "HazardMeta.csv", sep=""))
 

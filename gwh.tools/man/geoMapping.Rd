@@ -13,7 +13,7 @@ MapDots(lon, lat, val, val.bucket = seq(from = min(val), to = max(val),
   leg.txt = paste(leg.bucket[1:(length(val.bucket) - 1L)], "-",
   leg.bucket[2:length(val.bucket)]), file.name, title.str,
   leg.x = "bottomright", map.database = "world", map.regions, map.lwd = 3,
-  change.order = TRUE)
+  change.order = TRUE, point.cex = 0.5)
 
 CreateKMZ(grid.matrix, grid.col, val.min = min(grid.matrix),
   val.max = max(grid.matrix), file.path = "", file.name.base, overlay.name,

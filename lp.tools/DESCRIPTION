@@ -1,0 +1,11 @@
+Package: lp.tools
+Type: Package
+Title: Tools for LP problems
+Version: 1.0
+Date: 2015-06-02
+Author: Georg
+Maintainer: Who to complain to <yourfault@somewhere.net>
+Depends:
+    lpSolve
+Description: Helps formulating constraints and obectives for Linear Programming (LP) problems.
+License: What license is it under?

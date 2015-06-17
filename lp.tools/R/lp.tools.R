@@ -42,46 +42,50 @@ Initialize <- function(num.v, optimizer, direction){
 #' @export 
 #' @rdname lp.tools
 AddConstraint <- function(description = "", mat, rhs, dir){
-  if (class(mat)=="dgCMatrix"){
-    mat <- as.matrix(mat)
+  if (length(is.na(mat))==1 & is.na(mat)[1]){
+      cat("No constriant added for ", paste(unique(description), collapse = ", "), "\r\n")
+  }else{
+    if (class(mat)=="dgCMatrix"){
+      mat <- as.matrix(mat)
+    }
+    if(!is.matrix(mat)){
+      mat <- matrix(data = mat, nrow = 1)
+    }
+    num.const <- nrow(mat)
+    if(length(description)==1){
+      description <- rep(description, num.const)    
+    }
+    if(length(rhs)==1){
+      rhs <- rep(rhs, num.const)
+    }
+    if(length(dir)==1){
+      dir <- rep(dir, num.const)
+    }
+    which.valid <- !(is.na(rowSums(mat)) | is.na(rhs))
+    mat <- mat[which.valid, , drop=F]
+    rhs <- rhs[which.valid]
+    dir <- dir[which.valid]
+    description <- description[which.valid]
+    if (sum(which.valid) > 0){
+      # norm.matrix <- Diagonal(x = abs(1 / rhs))
+      norm.matrix <- Diagonal(x = 1 / rowSums(abs(mat)))
+      mat <- as.matrix(norm.matrix %*% mat) 
+      rhs <- as.vector(norm.matrix %*% rhs)
+      lp.env$const.description <- c(lp.env$const.description, description)
+      lp.env$const.mat <- rBind(lp.env$const.mat, mat)
+      lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
+      lp.env$const.dir <- c(lp.env$const.dir, dir)
+    }
+    if (lp.env$fractional == TRUE){
+      UpdateFractionalObjective()
+    }
+    ret <- RunLP(dont.stop = TRUE)
+    cat("Added ", sum(which.valid), " constraints for ", paste(unique(description), collapse = ", "), "\r\n")
+    if (ret$status > 0){
+      cat(ret$status.message, "\r\n")
+    }
+    cat("Current objective value:", ret$objval, "\r\n")
   }
-  if(!is.matrix(mat)){
-    mat <- matrix(data = mat, nrow = 1)
-  }
-  num.const <- nrow(mat)
-  if(length(description)==1){
-    description <- rep(description, num.const)    
-  }
-  if(length(rhs)==1){
-    rhs <- rep(rhs, num.const)
-  }
-  if(length(dir)==1){
-    dir <- rep(dir, num.const)
-  }
-  which.valid <- !(is.na(rowSums(mat)) | is.na(rhs))
-  mat <- matrix(mat[which.valid,], nrow = sum(which.valid))
-  rhs <- rhs[which.valid]
-  dir <- dir[which.valid]
-  description <- description[which.valid]
-  if (sum(which.valid) > 0){
-    # norm.matrix <- Diagonal(x = abs(1 / rhs))
-    norm.matrix <- Diagonal(x = 1 / rowSums(abs(mat)))
-    mat <- as.matrix(norm.matrix %*% mat) 
-    rhs <- as.vector(norm.matrix %*% rhs)
-    lp.env$const.description <- c(lp.env$const.description, description)
-    lp.env$const.mat <- rBind(lp.env$const.mat, mat)
-    lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
-    lp.env$const.dir <- c(lp.env$const.dir, dir)
-  }
-  if (lp.env$fractional == TRUE){
-    UpdateFractionalObjective()
-  }
-  ret <- RunLP(dont.stop = TRUE)
-  cat("Constraint added:", paste(unique(description), collapse = "; "), "\r\n")
-  if (ret$status > 0){
-    cat(ret$status.message, "\r\n")
-  }
-  cat("Current objective value:", ret$objval, "\r\n")
 }  
 
 UpdateFractionalObjective <- function(){

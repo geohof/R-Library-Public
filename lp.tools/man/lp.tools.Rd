@@ -5,12 +5,16 @@
 \alias{GetCostOfConstraint}
 \alias{GetValue}
 \alias{Initialize}
+\alias{RemoveConstraint}
+\alias{Restore}
 \alias{RunLP}
 \alias{SetObjective}
 \alias{lp.tools}
 \title{Tools to solve LP problems}
 \usage{
 Initialize(num.v, optimizer, direction)
+
+Restore()
 
 AddConstraint(description = "", mat, rhs, dir)
 
@@ -22,6 +26,8 @@ RunLP(dont.stop = FALSE)
 GetValue(object.name)
 
 GetCostOfConstraint()
+
+RemoveConstraint(description)
 }
 \arguments{
 \item{objective}{If this parameter is specified, then it defines the

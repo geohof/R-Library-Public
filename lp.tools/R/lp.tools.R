@@ -40,6 +40,21 @@ Initialize <- function(num.v, optimizer, direction){
 }
 
 #' @export 
+#' @rdname Backup
+#' @title Backup
+
+Backup <- function(){
+  backup.lp.env <- lp.env
+}
+
+#' @export 
+#' @rdname lp.tools
+Restore <- function(){
+  lp.env <- backup.lp.env
+}
+
+
+#' @export 
 #' @rdname lp.tools
 AddConstraint <- function(description = "", mat, rhs, dir){
   if (length(is.na(mat))==1 & is.na(mat)[1]){
@@ -76,25 +91,26 @@ AddConstraint <- function(description = "", mat, rhs, dir){
       lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
       lp.env$const.dir <- c(lp.env$const.dir, dir)
     }
-    if (lp.env$fractional == TRUE){
-      UpdateFractionalObjective()
-    }
+    UpdateFractionalObjective()
     ret <- RunLP(dont.stop = TRUE)
-    cat("Added ", sum(which.valid), " constraints for ", paste(unique(description), collapse = ", "), "\r\n")
+    cat("Added ", sum(which.valid), " inequalites for ", paste(unique(description), collapse = ", "), "\r\n")
     if (ret$status > 0){
       cat(ret$status.message, "\r\n")
+    }else{
+      cat("Current objective value:", ret$objval, "\r\n")
     }
-    cat("Current objective value:", ret$objval, "\r\n")
   }
 }  
 
 UpdateFractionalObjective <- function(){
-  lp.env$trans.const.mat <- cbind(lp.env$const.mat, -lp.env$const.rhs)
-  lp.env$trans.const.mat <- 
-    rbind(lp.env$trans.const.mat, 
-          c(lp.env$objective.denom, lp.env$constant.denom))
-  lp.env$trans.const.rhs <- c(rep(0, nrow(lp.env$const.mat)), 1)
-  lp.env$trans.const.dir <- c(lp.env$const.dir, "=")
+  if (lp.env$fractional == TRUE){
+    lp.env$trans.const.mat <- cbind(lp.env$const.mat, -lp.env$const.rhs)
+    lp.env$trans.const.mat <- 
+      rbind(lp.env$trans.const.mat, 
+            c(lp.env$objective.denom, lp.env$constant.denom))
+    lp.env$trans.const.rhs <- c(rep(0, nrow(lp.env$const.mat)), 1)
+    lp.env$trans.const.dir <- c(lp.env$const.dir, "=")
+  }
 }
 
 #' @export 
@@ -235,4 +251,22 @@ GetCostOfConstraint <- function(){
                     message = status.message.vec)
   ret <- ret[order(ret$cost, decreasing = TRUE),]
   return(ret)
+}
+
+#' @export 
+#' @rdname lp.tools
+RemoveConstraint <- function(description){
+  f <- lp.env$description!=description
+  lp.env$const.mat <- lp.env$const.mat[f, , drop=FALSE]
+  lp.env$const.rhs <- lp.env$const.rhs[f]
+  lp.env$const.dir <- lp.env$const.dir[f]
+  lp.env$const.description <- lp.env$const.description[f]
+  UpdateFractionalObjective()
+  ret <- RunLP(dont.stop = TRUE)
+  cat("Added ", sum(which.valid), " inequalites for ", paste(unique(description), collapse = ", "), "\r\n")
+  if (ret$status > 0){
+    cat(ret$status.message, "\r\n")
+  }else{
+    cat("Current objective value:", ret$objval, "\r\n")
+  }
 }

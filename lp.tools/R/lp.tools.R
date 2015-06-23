@@ -44,13 +44,17 @@ Initialize <- function(num.v, optimizer, direction){
 #' @title Backup
 
 Backup <- function(){
-  backup.lp.env <- lp.env
+  for(var.name in ls(lp.env, all.names=TRUE)){
+    backup.lp.env[[var.name]] <- lp.env[[var.name]]
+  }
 }
 
 #' @export 
 #' @rdname lp.tools
 Restore <- function(){
-  lp.env <- backup.lp.env
+  for(var.name in ls(backup.lp.env, all.names=TRUE)){
+    lp.env[[var.name]] <- backup.lp.env[[var.name]]
+  }
 }
 
 
@@ -93,7 +97,7 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     }
     UpdateFractionalObjective()
     ret <- RunLP(dont.stop = TRUE)
-    cat("Added ", sum(which.valid), " inequalites for ", paste(unique(description), collapse = ", "), "\r\n")
+    cat("Added ", sum(which.valid), " inequalities for ", paste(unique(description), collapse = ", "), "\r\n")
     if (ret$status > 0){
       cat(ret$status.message, "\r\n")
     }else{
@@ -256,14 +260,14 @@ GetCostOfConstraint <- function(){
 #' @export 
 #' @rdname lp.tools
 RemoveConstraint <- function(description){
-  f <- lp.env$description!=description
+  f <- lp.env$const.description!=description
   lp.env$const.mat <- lp.env$const.mat[f, , drop=FALSE]
   lp.env$const.rhs <- lp.env$const.rhs[f]
   lp.env$const.dir <- lp.env$const.dir[f]
   lp.env$const.description <- lp.env$const.description[f]
   UpdateFractionalObjective()
   ret <- RunLP(dont.stop = TRUE)
-  cat("Added ", sum(which.valid), " inequalites for ", paste(unique(description), collapse = ", "), "\r\n")
+  cat("Removed ", sum(!f), " inequalities for ", paste(unique(description), collapse = ", "), "\r\n")
   if (ret$status > 0){
     cat(ret$status.message, "\r\n")
   }else{

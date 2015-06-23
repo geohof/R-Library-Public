@@ -1,4 +1,5 @@
 lp.env <- new.env()
+backup.lp.env <- new.env()
 #require(lpSolve)
 
 assign(x = "optimizer", value = "lpsolve", envir = lp.env)  

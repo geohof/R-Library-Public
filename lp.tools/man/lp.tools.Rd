@@ -2,6 +2,7 @@
 % Please edit documentation in R/lp.tools.R
 \name{lp.tools}
 \alias{AddConstraint}
+\alias{CheckConstraints}
 \alias{GetCostOfConstraint}
 \alias{GetValue}
 \alias{Initialize}
@@ -19,15 +20,17 @@ Restore()
 AddConstraint(description = "", mat, rhs, dir)
 
 SetObjective(objective, constant.numer = 0, objective.numer,
-  constant.denom = 0, objective.denom, scale.factor = 1)
+  constant.denom = 0, objective.denom, scale.factor = 1, direction)
 
 RunLP(dont.stop = FALSE)
 
 GetValue(object.name)
 
-GetCostOfConstraint()
+GetCostOfConstraint(exclude = character(0))
 
 RemoveConstraint(description)
+
+CheckConstraints(solution, exclude = character(0))
 }
 \arguments{
 \item{objective}{If this parameter is specified, then it defines the

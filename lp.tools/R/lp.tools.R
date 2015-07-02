@@ -70,6 +70,10 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     if(!is.matrix(mat)){
       mat <- matrix(data = mat, nrow = 1)
     }
+    if(ncol(mat) < lp.env$num.v){
+      mat <- cbind(mat, matrix(0, nrow = nrow(mat), 
+                                     ncol = lp.env$num.v - ncol(mat)))
+    }
     num.const <- nrow(mat)
     if(length(description)==1){
       description <- rep(description, num.const)    
@@ -97,11 +101,12 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     }
     UpdateFractionalObjective()
     ret <- RunLP(dont.stop = TRUE)
-    cat("Added ", sum(which.valid), " inequalities for ", paste(unique(description), collapse = ", "), "\r\n")
+    cat("Added ", sum(which.valid), " inequalities for ", 
+        paste(unique(description), collapse = ", "), ". ", sep = "")
     if (ret$status > 0){
       cat(ret$status.message, "\r\n")
     }else{
-      cat("Current objective value:", ret$objval, "\r\n")
+      cat("Current objective value: ", ret$objval, "\r\n", sep = "")
     }
   }
 }  
@@ -123,7 +128,11 @@ UpdateFractionalObjective <- function(){
 #' objective. If it is not sepcified, then the objective is fractional 
 #' and is defined by the other four parameters. 
 SetObjective <- function(objective, constant.numer = 0, objective.numer,
-                         constant.denom = 0, objective.denom, scale.factor = 1){
+                         constant.denom = 0, objective.denom, scale.factor = 1, 
+                         direction){
+  if (!missing(direction)){
+    lp.env$direction <- direction
+  }
   if(!missing(objective)){
     lp.env$fractional <- FALSE
     lp.env$objective <- objective
@@ -218,7 +227,7 @@ GetValue <- function(object.name){
 
 #' @export 
 #' @rdname lp.tools
-GetCostOfConstraint <- function(){
+GetCostOfConstraint <- function(exclude = character(0)){
   tmp.sol <- RunLP(dont.stop = TRUE)
   target.objval <- tmp.sol$objval
   tmp.const.mat <- lp.env$const.mat
@@ -227,6 +236,8 @@ GetCostOfConstraint <- function(){
   tmp.const.description <- lp.env$const.description
   
   unique.description <- unique(tmp.const.description)
+  unique.description <- unique.description[!unique.description %in% exclude]
+  
   num.const <- length(unique.description)
   
   objval.vec <- numeric(0)
@@ -249,9 +260,10 @@ GetCostOfConstraint <- function(){
   lp.env$const.description <- tmp.const.description
   UpdateFractionalObjective()
   
+  tmp.sign <- ifelse(lp.env$direction=="max", 1, -1)
   ret <- data.frame(desc = unique.description, 
                     objective = objval.vec, 
-                    cost = objval.vec - target.objval, 
+                    cost = tmp.sign * (objval.vec - target.objval), 
                     message = status.message.vec)
   ret <- ret[order(ret$cost, decreasing = TRUE),]
   return(ret)
@@ -267,10 +279,46 @@ RemoveConstraint <- function(description){
   lp.env$const.description <- lp.env$const.description[f]
   UpdateFractionalObjective()
   ret <- RunLP(dont.stop = TRUE)
-  cat("Removed ", sum(!f), " inequalities for ", paste(unique(description), collapse = ", "), "\r\n")
+  cat("Removed ", sum(!f), " inequalities for ", 
+      paste(unique(description), collapse = ", "), "\r\n", sep="")
   if (ret$status > 0){
     cat(ret$status.message, "\r\n")
   }else{
-    cat("Current objective value:", ret$objval, "\r\n")
+    cat("Current objective value: ", ret$objval, "\r\n")
   }
 }
+
+#' @export 
+#' @rdname lp.tools
+CheckConstraints <- function(solution, exclude = character(0)){
+  lp.env$const.description <- GetValue("const.description")
+  const.mat <- GetValue("const.mat")
+  const.rhs <- GetValue("const.rhs")
+  const.dir <- GetValue("const.dir")
+  unique.description <- unique(lp.env$const.description)
+  unique.description <- unique.description[!unique.description %in% exclude]
+  
+  
+  tmp.ret <- ifelse(lp.env$const.dir=="<=", 
+                    lp.env$const.mat %*% solution <= lp.env$const.rhs,
+             ifelse(lp.env$const.dir=="=", 
+                    lp.env$const.mat %*% solution == lp.env$const.rhs,
+             ifelse(lp.env$const.dir==">=", 
+                    lp.env$const.mat %*% solution >= lp.env$const.rhs,
+             NA)))
+  ret.tab <- data.frame()
+  for(i in 1:length(unique.description)){
+    f <- lp.env$const.description == unique.description[i]
+    num.viol <- sum(!tmp.ret[f])
+    inc.tab <- data.frame(description = unique.description[i],
+                          num.inequality = sum(f),
+                          num.violation = num.viol)
+    if(i==1){
+      ret.tab <- inc.tab
+    }else{
+      ret.tab[i, ] <- inc.tab
+    }
+  }
+  return(ret.tab)
+}
+

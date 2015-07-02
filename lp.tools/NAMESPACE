@@ -2,6 +2,7 @@
 
 export(AddConstraint)
 export(Backup)
+export(CheckConstraints)
 export(GetCostOfConstraint)
 export(GetValue)
 export(Initialize)

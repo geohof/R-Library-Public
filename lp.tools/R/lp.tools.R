@@ -101,12 +101,13 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     }
     UpdateFractionalObjective()
     ret <- RunLP(dont.stop = TRUE)
-    cat("Added ", sum(which.valid), " inequalities for ", 
-        paste(unique(description), collapse = ", "), ". ", sep = "")
+    cat("Number of inequalities added for ", 
+        paste(unique(description), collapse = ", "), ": ", 
+        sum(which.valid), ". ", sep = "")
     if (ret$status > 0){
       cat(ret$status.message, "\r\n")
     }else{
-      cat("Current objective value: ", ret$objval, "\r\n", sep = "")
+      cat("Optimal ", lp.env$obj.description, ": ", ret$objval, "\r\n", sep = "")
     }
   }
 }  
@@ -129,13 +130,14 @@ UpdateFractionalObjective <- function(){
 #' and is defined by the other four parameters. 
 SetObjective <- function(objective, constant.numer = 0, objective.numer,
                          constant.denom = 0, objective.denom, scale.factor = 1, 
-                         direction){
+                         direction, description = "value"){
+  lp.env$obj.description <- description
   if (!missing(direction)){
     lp.env$direction <- direction
   }
   if(!missing(objective)){
     lp.env$fractional <- FALSE
-    lp.env$objective <- objective
+    lp.env$objective <- c(objective, rep(0, lp.env$num.v - length(objective)))
   }else{
     lp.env$fractional <- TRUE
     lp.env$constant.numer <- constant.numer / scale.factor
@@ -215,6 +217,7 @@ RunLP <- function(dont.stop = FALSE){
   }
   # max(const.mat %*% tmp.sol.l$solution - const.rhs)
   # max(const.mat %*% tmp.sol.g$x - const.rhs)
+  lp.env$last.solution <- ret
   return(ret)
 }
 
@@ -271,6 +274,12 @@ GetCostOfConstraint <- function(exclude = character(0)){
 
 #' @export 
 #' @rdname lp.tools
+GetLastSolution <- function(){
+  return(lp.env$last.solution)
+}
+
+#' @export 
+#' @rdname lp.tools
 RemoveConstraint <- function(description){
   f <- lp.env$const.description!=description
   lp.env$const.mat <- lp.env$const.mat[f, , drop=FALSE]
@@ -280,7 +289,7 @@ RemoveConstraint <- function(description){
   UpdateFractionalObjective()
   ret <- RunLP(dont.stop = TRUE)
   cat("Removed ", sum(!f), " inequalities for ", 
-      paste(unique(description), collapse = ", "), "\r\n", sep="")
+      paste(unique(description), collapse = ", "), ".", sep="")
   if (ret$status > 0){
     cat(ret$status.message, "\r\n")
   }else{

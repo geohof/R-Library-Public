@@ -288,12 +288,13 @@ RemoveConstraint <- function(description){
   lp.env$const.description <- lp.env$const.description[f]
   UpdateFractionalObjective()
   ret <- RunLP(dont.stop = TRUE)
-  cat("Removed ", sum(!f), " inequalities for ", 
-      paste(unique(description), collapse = ", "), ".", sep="")
+  cat("Number of inequalities removed for ", 
+      paste(unique(description), collapse = ", "), ": ", 
+      sum(!f), ". ", sep = "")
   if (ret$status > 0){
     cat(ret$status.message, "\r\n")
   }else{
-    cat("Current objective value: ", ret$objval, "\r\n")
+      cat("Optimal ", lp.env$obj.description, ": ", ret$objval, "\r\n", sep = "")
   }
 }
 

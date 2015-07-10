@@ -19,8 +19,26 @@
 
 #' @export
 #' @examples
-#' 4 + 5
+#' require(lp.tools)
+#' require(Matrix)
+#' num.v <- 10
+#' Initialize(num.v)
+#' SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")
+#' AddConstraint(description = "Upper Bound", 
+#'               mat = Diagonal(num.v), 
+#'               rhs = 1, 
+#'               dir = "<=")
+#' AddConstraint(description = "Random Bounds", 
+#'               mat = matrix(runif(3 * num.v), ncol=num.v),
+#'               rhs = 1, 
+#'               dir = "<=")
+#' AddConstraint(description = "Random Bound", 
+#'               mat = runif(num.v),
+#'               rhs = 1, 
+#'               dir = "<=")
+#' GetCostOfConstraint()
 
+#' @import Matrix
 
 
 #' @export 
@@ -28,7 +46,8 @@
 Initialize <- function(num.v, optimizer, direction){
   lp.env$num.v <- num.v
   lp.env$const.description <- character(0)
-  lp.env$const.mat <- matrix(data=0, nrow=0, ncol=num.v)
+  lp.env$const.mat <- sparseMatrix(i = integer(0), j = integer(0), 
+                                   x = numeric(0), dims = c(0, num.v))
   lp.env$const.rhs <- numeric(0)
   lp.env$const.dir <- character(0)
   if (!missing(optimizer)){
@@ -64,15 +83,15 @@ AddConstraint <- function(description = "", mat, rhs, dir){
   if (length(is.na(mat))==1 & is.na(mat)[1]){
       cat("No constriant added for ", paste(unique(description), collapse = ", "), "\r\n")
   }else{
-    if (class(mat)=="dgCMatrix"){
-      mat <- as.matrix(mat)
-    }
-    if(!is.matrix(mat)){
+    if (is.null(nrow(mat))){
       mat <- matrix(data = mat, nrow = 1)
     }
-    if(ncol(mat) < lp.env$num.v){
-      mat <- cbind(mat, matrix(0, nrow = nrow(mat), 
-                                     ncol = lp.env$num.v - ncol(mat)))
+    #mat <- as(mat, Class = "dgCMatrix")
+    mat <- Matrix(mat)
+    if (ncol(mat) < lp.env$num.v){
+      zero.mat <- sparseMatrix(i = integer(0), j = integer(0), x = numeric(0),
+                               dims = c(nrow(mat), lp.env$num.v - ncol(mat)))
+      mat <- cBind(mat, zero.mat)
     }
     num.const <- nrow(mat)
     if(length(description)==1){
@@ -84,6 +103,13 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     if(length(dir)==1){
       dir <- rep(dir, num.const)
     }
+#     print("mat")
+#     print(mat)
+#     print(rowSums(mat))
+#     print(class(abs.mat))
+#     print(abs.mat)
+#     print(rowSums(abs.mat))
+    
     which.valid <- !(is.na(rowSums(mat)) | is.na(rhs))
     mat <- mat[which.valid, , drop=F]
     rhs <- rhs[which.valid]
@@ -91,8 +117,9 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     description <- description[which.valid]
     if (sum(which.valid) > 0){
       # norm.matrix <- Diagonal(x = abs(1 / rhs))
-      norm.matrix <- Diagonal(x = 1 / rowSums(abs(mat)))
-      mat <- as.matrix(norm.matrix %*% mat) 
+      abs.mat <- as(abs(mat), Class = "dgCMatrix")
+      norm.matrix <- Matrix::Diagonal(x = 1 / rowSums(abs.mat))
+      mat <- norm.matrix %*% mat 
       rhs <- as.vector(norm.matrix %*% rhs)
       lp.env$const.description <- c(lp.env$const.description, description)
       lp.env$const.mat <- rBind(lp.env$const.mat, mat)
@@ -170,9 +197,10 @@ RunLP <- function(dont.stop = FALSE){
   if (lp.env$optimizer == "lpsolve"){
     tmp.sol <- lp(direction = lp.env$direction, 
                   objective.in = objective, 
-                  const.mat = const.mat,
+                  # const.mat = as.matrix(const.mat),
                   const.dir = const.dir,
-                  const.rhs = const.rhs
+                  const.rhs = const.rhs,
+                  dense.const = GetThreeCols(const.mat),
                   #,scale = 0
     )
     status.message <- ""
@@ -227,6 +255,16 @@ GetValue <- function(object.name){
   return(lp.env[[object.name]])
 }
 
+#' @export 
+#' @rdname lp.tools
+GetThreeCols <- function(mat){
+  mat <- as(mat, Class = "dgCMatrix")
+  df <- data.frame(
+    i = mat@i + 1, 
+    j = rep(1:length(mat@p[-1]), diff(mat@p)), 
+    x = mat@x)
+  return(as.matrix(df))
+}
 
 #' @export 
 #' @rdname lp.tools
@@ -247,7 +285,7 @@ GetCostOfConstraint <- function(exclude = character(0)){
   status.message.vec <- numeric(0)
   for(i in 1:num.const){
     f <- tmp.const.description!=unique.description[i]
-    lp.env$const.mat <- as.matrix(tmp.const.mat[f,], nrow = sum(f))
+    lp.env$const.mat <- tmp.const.mat[f, , drop = FALSE]
     lp.env$const.rhs <- tmp.const.rhs[f]
     lp.env$const.dir <- tmp.const.dir[f]
     lp.env$const.description <- tmp.const.description[f]

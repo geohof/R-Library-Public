@@ -1,6 +1,7 @@
 lp.env <- new.env()
 backup.lp.env <- new.env()
 #require(lpSolve)
+#require(Matrix)
 
 assign(x = "optimizer", value = "lpsolve", envir = lp.env)  
 assign(x = "direction", value = "max", envir = lp.env)  

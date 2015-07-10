@@ -81,7 +81,8 @@ Restore <- function(){
 #' @rdname lp.tools
 AddConstraint <- function(description = "", mat, rhs, dir){
   if (length(is.na(mat))==1 & is.na(mat)[1]){
-      cat("No constriant added for ", paste(unique(description), collapse = ", "), "\r\n")
+      cat(lp.env$GetTimeStamp(),
+          "No constriant added for ", paste(unique(description), collapse = ", "), "\r\n")
   }else{
     if (is.null(nrow(mat))){
       mat <- matrix(data = mat, nrow = 1)
@@ -128,7 +129,8 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     }
     UpdateFractionalObjective()
     ret <- RunLP(dont.stop = TRUE)
-    cat("Number of inequalities added for ", 
+    cat(lp.env$GetTimeStamp(),
+        "Number of inequalities added for ", 
         paste(unique(description), collapse = ", "), ": ", 
         sum(which.valid), ". ", sep = "")
     if (ret$status > 0){
@@ -326,13 +328,14 @@ RemoveConstraint <- function(description){
   lp.env$const.description <- lp.env$const.description[f]
   UpdateFractionalObjective()
   ret <- RunLP(dont.stop = TRUE)
-  cat("Number of inequalities removed for ", 
+  cat(lp.env$GetTimeStamp(),
+      "Number of inequalities removed for ", 
       paste(unique(description), collapse = ", "), ": ", 
       sum(!f), ". ", sep = "")
   if (ret$status > 0){
     cat(ret$status.message, "\r\n")
   }else{
-      cat("Optimal ", lp.env$obj.description, ": ", ret$objval, "\r\n", sep = "")
+    cat("Optimal ", lp.env$obj.description, ": ", ret$objval, "\r\n", sep = "")
   }
 }
 

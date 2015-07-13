@@ -88,7 +88,9 @@ AddConstraint <- function(description = "", mat, rhs, dir){
       mat <- matrix(data = mat, nrow = 1)
     }
     #mat <- as(mat, Class = "dgCMatrix")
-    mat <- Matrix(mat)
+    #mat <- as(Matrix(mat), Class = "dgCMatrix")
+    #mat <- Matrix(mat)
+    mat <- drop0(x = mat)
     if (ncol(mat) < lp.env$num.v){
       zero.mat <- sparseMatrix(i = integer(0), j = integer(0), x = numeric(0),
                                dims = c(nrow(mat), lp.env$num.v - ncol(mat)))
@@ -143,9 +145,9 @@ AddConstraint <- function(description = "", mat, rhs, dir){
 
 UpdateFractionalObjective <- function(){
   if (lp.env$fractional == TRUE){
-    lp.env$trans.const.mat <- cbind(lp.env$const.mat, -lp.env$const.rhs)
+    lp.env$trans.const.mat <- cBind(lp.env$const.mat, -lp.env$const.rhs)
     lp.env$trans.const.mat <- 
-      rbind(lp.env$trans.const.mat, 
+      rBind(lp.env$trans.const.mat, 
             c(lp.env$objective.denom, lp.env$constant.denom))
     lp.env$trans.const.rhs <- c(rep(0, nrow(lp.env$const.mat)), 1)
     lp.env$trans.const.dir <- c(lp.env$const.dir, "=")
@@ -342,21 +344,18 @@ RemoveConstraint <- function(description){
 #' @export 
 #' @rdname lp.tools
 CheckConstraints <- function(solution, exclude = character(0)){
-  lp.env$const.description <- GetValue("const.description")
-  const.mat <- GetValue("const.mat")
-  const.rhs <- GetValue("const.rhs")
-  const.dir <- GetValue("const.dir")
   unique.description <- unique(lp.env$const.description)
   unique.description <- unique.description[!unique.description %in% exclude]
   
   
-  tmp.ret <- ifelse(lp.env$const.dir=="<=", 
-                    lp.env$const.mat %*% solution <= lp.env$const.rhs,
-             ifelse(lp.env$const.dir=="=", 
-                    lp.env$const.mat %*% solution == lp.env$const.rhs,
-             ifelse(lp.env$const.dir==">=", 
-                    lp.env$const.mat %*% solution >= lp.env$const.rhs,
-             NA)))
+  tmp.ret <- 
+    ifelse(lp.env$const.dir=="<=", 
+           as.vector(lp.env$const.mat %*% solution) <= lp.env$const.rhs,
+    ifelse(lp.env$const.dir=="=", 
+           as.vector(lp.env$const.mat %*% solution) == lp.env$const.rhs,
+    ifelse(lp.env$const.dir==">=", 
+           as.vector(lp.env$const.mat %*% solution) >= lp.env$const.rhs,
+    NA)))
   ret.tab <- data.frame()
   for(i in 1:length(unique.description)){
     f <- lp.env$const.description == unique.description[i]

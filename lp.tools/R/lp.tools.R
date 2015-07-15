@@ -43,11 +43,11 @@
 
 #' @export 
 #' @rdname lp.tools
-Initialize <- function(num.v, optimizer, direction){
+Initialize <- function(num.v, optimizer, direction, lock.variables){
+  
+  
   lp.env$num.v <- num.v
   lp.env$const.description <- character(0)
-  lp.env$const.mat <- sparseMatrix(i = integer(0), j = integer(0), 
-                                   x = numeric(0), dims = c(0, num.v))
   lp.env$const.rhs <- numeric(0)
   lp.env$const.dir <- character(0)
   if (!missing(optimizer)){
@@ -56,6 +56,26 @@ Initialize <- function(num.v, optimizer, direction){
   if (!missing(direction)){
     lp.env$direction <- direction
   }
+  if (!missing(lock.variables)){
+    lp.env$lock.variables <- lock.variables
+  }
+  if (!missing(lock.variables)){
+    if(length(lock.variables) < num.v){
+      lock.variables <- c(lock.variables, rep(NA, num.v - length(lock.variables)))
+    }
+    lp.env$lock.variables <- lock.variables
+    lp.env$num.unlocked <- sum(is.na(lock.variables))
+  }else{
+    lp.env$lock.variables <- rep(NA, num.v)
+  }
+  lp.env$lock.filter <- !is.na(lp.env$lock.variables)
+  lp.env$unlock.filter <- !lp.env$lock.filter
+  lp.env$num.unlocked <- sum(lp.env$unlock.filter)
+  lp.env$num.locked <- sum(lp.env$lock.filter)
+  lp.env$locked.vec <- lp.env$lock.variables[lp.env$lock.filter]
+  lp.env$const.mat <- sparseMatrix(
+    i = integer(0), j = integer(0), 
+    x = numeric(0), dims = c(0, lp.env$num.unlocked))
 }
 
 #' @export 
@@ -119,11 +139,38 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     dir <- dir[which.valid]
     description <- description[which.valid]
     if (sum(which.valid) > 0){
+      # Now apply variable locking
+      mat[,lp.env$unlock.filter]
+#       unlocked.mat <- sparseMatrix(
+#         dims = c(lp.env$num.v, lp.env$num.unlocked),
+#         i = which(lp.env$unlock.filter),
+#         j = 1:lp.env$num.unlocked,
+#         x = rep(1, lp.env$num.unlocked))
+#       
+#       locked.mat <- sparseMatrix(
+#         dims = c(lp.env$num.v, lp.env$num.locked),
+#         i = which(lp.env$lock.filter),
+#         j = 1:lp.env$num.locked,
+#         x = rep(1, lp.env$num.locked))
+      
+                
+      rhs.reduction <- as.vector(mat[,lp.env$lock.filter, drop=FALSE] %*% 
+           lp.env$locked.vec)
+      rhs <- rhs - rhs.reduction
+      mat <- mat[,lp.env$unlock.filter, drop=FALSE]
+      f <- rowSums(mat ^ 2) > 0
+      mat <- mat[f, , drop = FALSE]
+      rhs <- rhs[f]
+      dir <- dir[f]
+      description <- description[f]
+      # Apply normalization
       # norm.matrix <- Diagonal(x = abs(1 / rhs))
       abs.mat <- as(abs(mat), Class = "dgCMatrix")
       norm.matrix <- Matrix::Diagonal(x = 1 / rowSums(abs.mat))
       mat <- norm.matrix %*% mat 
       rhs <- as.vector(norm.matrix %*% rhs)
+      #      mat <- drop0(x = mat, tol = 1e-4)
+
       lp.env$const.description <- c(lp.env$const.description, description)
       lp.env$const.mat <- rBind(lp.env$const.mat, mat)
       lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
@@ -134,7 +181,7 @@ AddConstraint <- function(description = "", mat, rhs, dir){
     cat(lp.env$GetTimeStamp(),
         "Number of inequalities added for ", 
         paste(unique(description), collapse = ", "), ": ", 
-        sum(which.valid), ". ", sep = "")
+        length(rhs), ". ", sep = "")
     if (ret$status > 0){
       cat(ret$status.message, "\r\n")
     }else{
@@ -168,13 +215,16 @@ SetObjective <- function(objective, constant.numer = 0, objective.numer,
   }
   if(!missing(objective)){
     lp.env$fractional <- FALSE
-    lp.env$objective <- c(objective, rep(0, lp.env$num.v - length(objective)))
+    lp.env$objective.full <- c(objective, rep(0, lp.env$num.v - length(objective)))
+    lp.env$objective <- lp.env$objective.full[lp.env$unlock.filter]
   }else{
     lp.env$fractional <- TRUE
-    lp.env$constant.numer <- constant.numer / scale.factor
-    lp.env$objective.numer <- objective.numer / scale.factor
-    lp.env$constant.denom <- constant.denom / scale.factor
-    lp.env$objective.denom <- objective.denom / scale.factor
+    lp.env$constant.numer <- (constant.numer  +
+      sum(lp.env$locked.vec * objective.numer[lp.env$lock.filter])) / scale.factor
+    lp.env$objective.numer <- objective.numer[lp.env$unlock.filter] / scale.factor
+    lp.env$constant.denom <- (constant.denom +
+      sum(lp.env$locked.vec * objective.denom[lp.env$lock.filter])) / scale.factor
+    lp.env$objective.denom <- objective.denom[lp.env$unlock.filter] / scale.factor
   
     lp.env$trans.objective <- c(lp.env$objective.numer, lp.env$constant.numer)
 
@@ -201,11 +251,11 @@ RunLP <- function(dont.stop = FALSE){
   if (lp.env$optimizer == "lpsolve"){
     tmp.sol <- lp(direction = lp.env$direction, 
                   objective.in = objective, 
-                  # const.mat = as.matrix(const.mat),
+                  #const.mat = as.matrix(const.mat),
                   const.dir = const.dir,
                   const.rhs = const.rhs,
                   dense.const = GetThreeCols(const.mat),
-                  #,scale = 0
+                  ,scale = 0
     )
     status.message <- ""
     if(tmp.sol$status==3){
@@ -225,12 +275,20 @@ RunLP <- function(dont.stop = FALSE){
       ret <- list(objval = NA, solution = NA,
                   status = tmp.sol$status, status.message = status.message)
     }else{
-      ret <- list(objval = tmp.sol$objval, solution = tmp.sol$solution,
-                  status = tmp.sol$status, status.message = status.message)
+      sol <- rep(0, lp.env$num.v)
+      ret <- list(status = tmp.sol$status, status.message = status.message)
       if(lp.env$fractional){
-        ret$t <- tmp.sol$solution[lp.env$num.v + 1L]
-        ret$solution <- tmp.sol$solution[1:lp.env$num.v] / ret$t
+        ret$t <- tmp.sol$solution[lp.env$num.unlocked + 1L]
+        sol[lp.env$unlock.filter] <- tmp.sol$solution[1:lp.env$num.unlocked]
+        sol <- sol / ret$t
+        sol[lp.env$lock.filter] <- lp.env$locked.vec
+        ret$objval <- tmp.sol$objval
+      }else{
+        sol[lp.env$lock.filter] <- lp.env$locked.vec
+        sol[lp.env$unlock.filter] <- tmp.sol$solution
+        ret$objval <- sum(sol * lp.env$objective.full)  
       }
+      ret$solution <- sol
     }
     
   }else if (optimizer == "gurobi"){
@@ -343,26 +401,38 @@ RemoveConstraint <- function(description){
 
 #' @export 
 #' @rdname lp.tools
-CheckConstraints <- function(solution, exclude = character(0)){
+CheckConstraints <- function(solution, exclude = character(0),
+                             tolerance = 1E-6){
   unique.description <- unique(lp.env$const.description)
   unique.description <- unique.description[!unique.description %in% exclude]
   
-  
+  if (!all(solution[lp.env$lock.filter]==lp.env$locked.vec)){
+    cat("Locked variables not reflected in this solution.\r\n")
+  }
+  lhs <- as.vector(lp.env$const.mat %*% solution[lp.env$unlock.filter])
+  rhs <- lp.env$const.rhs
   tmp.ret <- 
-    ifelse(lp.env$const.dir=="<=", 
-           as.vector(lp.env$const.mat %*% solution) <= lp.env$const.rhs,
-    ifelse(lp.env$const.dir=="=", 
-           as.vector(lp.env$const.mat %*% solution) == lp.env$const.rhs,
-    ifelse(lp.env$const.dir==">=", 
-           as.vector(lp.env$const.mat %*% solution) >= lp.env$const.rhs,
-    NA)))
-  ret.tab <- data.frame()
+    ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance * abs(rhs),
+           ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance * abs(rhs),# lhs  == rhs,
+                  ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance * abs(rhs), NA)))
+  tmp.ret <- 
+    ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance,
+    ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance,
+    ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance, NA)))
+  #ret.tab <- data.frame()
   for(i in 1:length(unique.description)){
     f <- lp.env$const.description == unique.description[i]
     num.viol <- sum(!tmp.ret[f])
     inc.tab <- data.frame(description = unique.description[i],
                           num.inequality = sum(f),
                           num.violation = num.viol)
+#                           ,
+#                           tmp.out1 = 1E6 * (lhs[f] - rhs[f])[1],
+#                           tmp.out2 = lp.env$const.dir[f][1],
+#                           rhs = rhs[f][1],
+#                           lhs = lhs[f][1],
+#                           tmp.out3 = (lhs <= rhs + tolerance * abs(rhs))[f][1],
+#                           tmp.out4 = (lhs <= rhs + tolerance)[f][1])
     if(i==1){
       ret.tab <- inc.tab
     }else{

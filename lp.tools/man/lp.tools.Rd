@@ -15,7 +15,7 @@
 \alias{lp.tools}
 \title{Tools to solve LP problems}
 \usage{
-Initialize(num.v, optimizer, direction)
+Initialize(num.v, optimizer, direction, lock.variables)
 
 Restore()
 
@@ -37,7 +37,7 @@ GetLastSolution()
 
 RemoveConstraint(description)
 
-CheckConstraints(solution, exclude = character(0))
+CheckConstraints(solution, exclude = character(0), tolerance = 1e-06)
 }
 \arguments{
 \item{objective}{If this parameter is specified, then it defines the

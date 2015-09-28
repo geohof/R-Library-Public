@@ -373,7 +373,7 @@ RunLP <- function(dont.stop = FALSE){
       ret$solution <- sol
     }
     
-  }else if (optimizer == "gurobi"){
+  }else if (lp.env$optimizer == "gurobi"){
     model <- list()
     model$A <- const.mat
     model$obj <- objective

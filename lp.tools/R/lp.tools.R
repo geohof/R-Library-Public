@@ -353,25 +353,6 @@ RunLP <- function(dont.stop = FALSE){
       stop(paste(status.message, 
             " See http://lpsolve.sourceforge.net/5.5/solve.htm", sep=""))
     }
-    if(tmp.sol$status > 0){
-      ret <- list(objval = NA, solution = NA,
-                  status = tmp.sol$status, status.message = status.message)
-    }else{
-      sol <- rep(0, lp.env$num.v)
-      ret <- list(status = tmp.sol$status, status.message = status.message)
-      if(lp.env$fractional){
-        ret$t <- tmp.sol$solution[lp.env$num.unlocked + 1L]
-        sol[lp.env$unlock.filter] <- tmp.sol$solution[1:lp.env$num.unlocked]
-        sol <- sol / ret$t
-        sol[lp.env$lock.filter] <- lp.env$locked.vec
-        ret$objval <- tmp.sol$objval
-      }else{
-        sol[lp.env$lock.filter] <- lp.env$locked.vec
-        sol[lp.env$unlock.filter] <- tmp.sol$solution
-        ret$objval <- sum(sol * lp.env$objective.full)  
-      }
-      ret$solution <- sol
-    }
     
   }else if (lp.env$optimizer == "gurobi"){
     model <- list()
@@ -383,9 +364,36 @@ RunLP <- function(dont.stop = FALSE){
     sink("Output/gurobi.txt")
     tmp.sol <- gurobi(model)
     sink()
+    status.message <- ""
+
     #    unlink("Output/gurobi.txt")
-    ret <- list(objval = tmp.sol$objval, solution = tmp.sol$x,
+    tmp.sol <- list(objval = tmp.sol$objval, solution = tmp.sol$x,
                 status = tmp.sol$status)
+    if(tmp.sol$status == "OPTIMAL"){
+      tmp.sol$status <- 0
+    }else{
+      tmp.sol$status <- 1
+    }
+      
+  }
+  if(tmp.sol$status > 0){
+    ret <- list(objval = NA, solution = NA,
+                status = tmp.sol$status, status.message = status.message)
+  }else{
+    sol <- rep(0, lp.env$num.v)
+    ret <- list(status = tmp.sol$status, status.message = status.message)
+    if(lp.env$fractional){
+      ret$t <- tmp.sol$solution[lp.env$num.unlocked + 1L]
+      sol[lp.env$unlock.filter] <- tmp.sol$solution[1:lp.env$num.unlocked]
+      sol <- sol / ret$t
+      sol[lp.env$lock.filter] <- lp.env$locked.vec
+      ret$objval <- tmp.sol$objval
+    }else{
+      sol[lp.env$lock.filter] <- lp.env$locked.vec
+      sol[lp.env$unlock.filter] <- tmp.sol$solution
+      ret$objval <- sum(sol * lp.env$objective.full)  
+    }
+    ret$solution <- sol
   }
   # max(const.mat %*% tmp.sol.l$solution - const.rhs)
   # max(const.mat %*% tmp.sol.g$x - const.rhs)

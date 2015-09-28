@@ -32,6 +32,10 @@
 GetOEP<-function(rate, loss, 
                  prob=1 / c(1000, 500, 250, 200, 100, 50, 25, 20, 10), 
                  method="Poisson"){
+  num.loss <- length(loss)
+  if (missing(rate)){
+    rate <- rep(1 / num.loss, num.loss)
+  }
   o<-order(loss, decreasing=TRUE)
   rate<-rate[o]
   loss<-loss[o]

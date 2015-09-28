@@ -22,9 +22,10 @@
 #' require(lp.tools)
 #' require(Matrix)
 #' num.v <- 10
+#' set.seed(60606)
 #' Initialize(num.v)
 #' SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")
-#' AddConstraint(description = "Upper Bound", 
+#' AddConstraint(description = "Upper Bound",
 #'               mat = Diagonal(num.v), 
 #'               rhs = 1, 
 #'               dir = "<=")
@@ -36,10 +37,46 @@
 #'               mat = runif(num.v),
 #'               rhs = 1, 
 #'               dir = "<=")
+#' AddConstraint(description = "Random Bounds", 
+#'               mat = Matrix(matrix(runif(3 * (num.v - 1)), ncol=(num.v - 1))),
+#'               rhs = 1, 
+#'               dir = "<=")
 #' GetCostOfConstraint()
+#' 
+#' Initialize(num.v, lock.variables = rep(.3, 4))
+#' 
+#' SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")
+#' AddConstraint(description = "Upper Bound", 
+#'               mat = Diagonal(num.v), 
+#'               rhs = 1, 
+#'               dir = "<=")
+#' AddConstraint(description = "Random Bounds", 
+#'               mat = matrix(runif(3 * num.v), ncol=num.v),
+#'               rhs = 1, 
+#'               dir = "<=")
+#' 
+#' Initialize(num.v, lock.variables = rep(.3, 4))
+#' 
+#' SetObjective(objective.numer = runif(num.v), objective.denom  = runif(num.v), 
+#'              description = "Fraction", direction = "max")
+#' AddConstraint(description = "Upper Bound", 
+#'               mat = Diagonal(num.v), 
+#'               rhs = 1, 
+#'               dir = "<=")
+#' AddConstraint(description = "Random Bounds", 
+#'               mat = matrix(runif(3 * num.v), ncol=num.v),
+#'               rhs = 1, 
+#'               dir = "<=")
+#' RemoveConstraint(description = "Random Bounds")
 
 #' @import Matrix
 
+
+#' @export 
+#' @rdname lp.tools
+SetLPSolveScale <- function(lpsolve.scale){
+  lp.env$lpsolve.scale <- lpsolve.scale
+}
 
 #' @export 
 #' @rdname lp.tools
@@ -57,9 +94,9 @@ Initialize <- function(num.v, optimizer, direction, lock.variables){
     lp.env$direction <- direction
   }
   if (!missing(lock.variables)){
-    lp.env$lock.variables <- lock.variables
-  }
-  if (!missing(lock.variables)){
+    if(num.v==sum(!is.na(lock.variables))){
+      warning("lp.tools: All variables are locked.")
+    }
     if(length(lock.variables) < num.v){
       lock.variables <- c(lock.variables, rep(NA, num.v - length(lock.variables)))
     }
@@ -99,11 +136,23 @@ Restore <- function(){
 
 #' @export 
 #' @rdname lp.tools
-AddConstraint <- function(description = "", mat, rhs, dir){
-  if (length(is.na(mat))==1 & is.na(mat)[1]){
-      cat(lp.env$GetTimeStamp(),
-          "No constriant added for ", paste(unique(description), collapse = ", "), "\r\n")
-  }else{
+AddConstraint <- function(description = "", mat, rhs, dir, 
+                          avoid.duplicates = FALSE, rerun = TRUE, 
+                          feedback = TRUE){
+  #if (length(is.na(mat))==1 & is.na(mat)[1]){
+  if (class(mat)=="logical"){
+    if(is.na(mat)[1]){
+      if(feedback)
+        cat(lp.env$GetTimeStamp(),
+          "No constraint added for ", 
+          paste(unique(description), collapse = ", "), "\r\n")
+      return(invisible(0))
+    }
+  }
+  #}else{
+    if (class(mat)=="dsparseVector"){
+      mat <- as.vector(mat)
+    }
     if (is.null(nrow(mat))){
       mat <- matrix(data = mat, nrow = 1)
     }
@@ -157,8 +206,12 @@ AddConstraint <- function(description = "", mat, rhs, dir){
       rhs.reduction <- as.vector(mat[,lp.env$lock.filter, drop=FALSE] %*% 
            lp.env$locked.vec)
       rhs <- rhs - rhs.reduction
+      rhs[abs(rhs) < 1E-6] <- 0 
       mat <- mat[,lp.env$unlock.filter, drop=FALSE]
       f <- rowSums(mat ^ 2) > 0
+      if  (sum(((rhs[!f] < 0) & (dir[!f] %in% c("<=", "="))) |
+               ((rhs[!f] > 0) & (dir[!f] %in% c(">=", "=")))) > 0)
+        warning("Blocking contradicts constraint.")
       mat <- mat[f, , drop = FALSE]
       rhs <- rhs[f]
       dir <- dir[f]
@@ -170,24 +223,53 @@ AddConstraint <- function(description = "", mat, rhs, dir){
       mat <- norm.matrix %*% mat 
       rhs <- as.vector(norm.matrix %*% rhs)
       #      mat <- drop0(x = mat, tol = 1e-4)
+      if (avoid.duplicates){
+        f <- rep(TRUE, length(rhs))
+        for(i in seq(length.out = nrow(mat))){
+          m <- apply(lp.env$const.mat, MARGIN = 1, function(x) identical(x, mat[i,]))
+          if (sum(m) > 0){
+            f[i] <- FALSE
+          }
+        }
+        mat <- mat[f, , drop = FALSE]
+        rhs <- rhs[f]
+        dir <- dir[f]
+        description <- description[f]
+      }
 
       lp.env$const.description <- c(lp.env$const.description, description)
       lp.env$const.mat <- rBind(lp.env$const.mat, mat)
       lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
       lp.env$const.dir <- c(lp.env$const.dir, dir)
-    }
-    UpdateFractionalObjective()
-    ret <- RunLP(dont.stop = TRUE)
-    cat(lp.env$GetTimeStamp(),
-        "Number of inequalities added for ", 
-        paste(unique(description), collapse = ", "), ": ", 
-        length(rhs), ". ", sep = "")
-    if (ret$status > 0){
-      cat(ret$status.message, "\r\n")
+      ret.value <- length(rhs)
     }else{
-      cat("Optimal ", lp.env$obj.description, ": ", ret$objval, "\r\n", sep = "")
+      ret.value <- 0
     }
-  }
+    if(ret.value > 0){
+      UpdateFractionalObjective()
+      if(feedback)
+        cat(lp.env$GetTimeStamp(),
+            "Number of inequalities added for ", 
+            paste(unique(description), collapse = ", "), ": ", 
+            length(rhs), ". ", sep = "")
+      if(rerun){
+        ret <- RunLP(dont.stop = TRUE)        
+        if (ret$status > 0){
+          if(feedback)
+            cat(ret$status.message)
+        }else{
+          if(feedback)
+            cat("Optimal ", lp.env$obj.description, ": ", 
+              ret$objval, sep = "")
+        }
+      }
+      if(feedback)
+        cat("\r\n")
+    }else{
+      if(feedback)
+        cat(lp.env$GetTimeStamp(), "No constraint added.\r\n", sep="")
+    }
+  return(invisible(ret.value))
 }  
 
 UpdateFractionalObjective <- function(){
@@ -255,7 +337,7 @@ RunLP <- function(dont.stop = FALSE){
                   const.dir = const.dir,
                   const.rhs = const.rhs,
                   dense.const = GetThreeCols(const.mat),
-                  ,scale = 0
+                  ,scale = lp.env$lpsolve.scale
     )
     status.message <- ""
     if(tmp.sol$status==3){
@@ -368,7 +450,7 @@ GetCostOfConstraint <- function(exclude = character(0)){
                     objective = objval.vec, 
                     cost = tmp.sign * (objval.vec - target.objval), 
                     message = status.message.vec)
-  ret <- ret[order(ret$cost, decreasing = TRUE),]
+  ret <- ret[order(ret$objective * tmp.sign, decreasing = TRUE),]
   return(ret)
 }
 
@@ -380,23 +462,30 @@ GetLastSolution <- function(){
 
 #' @export 
 #' @rdname lp.tools
-RemoveConstraint <- function(description){
+RemoveConstraint <- function(description, rerun = TRUE, feedback = TRUE){
   f <- lp.env$const.description!=description
   lp.env$const.mat <- lp.env$const.mat[f, , drop=FALSE]
   lp.env$const.rhs <- lp.env$const.rhs[f]
   lp.env$const.dir <- lp.env$const.dir[f]
   lp.env$const.description <- lp.env$const.description[f]
   UpdateFractionalObjective()
-  ret <- RunLP(dont.stop = TRUE)
-  cat(lp.env$GetTimeStamp(),
-      "Number of inequalities removed for ", 
-      paste(unique(description), collapse = ", "), ": ", 
-      sum(!f), ". ", sep = "")
-  if (ret$status > 0){
-    cat(ret$status.message, "\r\n")
-  }else{
-    cat("Optimal ", lp.env$obj.description, ": ", ret$objval, "\r\n", sep = "")
+  if(feedback)
+    cat(lp.env$GetTimeStamp(),
+        "Number of inequalities removed for ", 
+        paste(unique(description), collapse = ", "), ": ", 
+        sum(!f), ". ", sep = "")
+  if(rerun){
+    ret <- RunLP(dont.stop = TRUE)
+    if (ret$status > 0){
+      if(feedback)
+        cat(ret$status.message)
+    }else{
+      if(feedback)
+        cat("Optimal ", lp.env$obj.description, ": ", ret$objval, sep = "")
+    }
   }
+  if(feedback)
+    cat("\r\n")
 }
 
 #' @export 
@@ -405,22 +494,28 @@ CheckConstraints <- function(solution, exclude = character(0),
                              tolerance = 1E-6){
   unique.description <- unique(lp.env$const.description)
   unique.description <- unique.description[!unique.description %in% exclude]
-  
+#   if(length(unique.description) == 0){
+#     cat("No constraints to check.")
+#     return(data.frame())
+#   }
   if (!all(solution[lp.env$lock.filter]==lp.env$locked.vec)){
     cat("Locked variables not reflected in this solution.\r\n")
   }
   lhs <- as.vector(lp.env$const.mat %*% solution[lp.env$unlock.filter])
   rhs <- lp.env$const.rhs
-  tmp.ret <- 
-    ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance * abs(rhs),
-           ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance * abs(rhs),# lhs  == rhs,
-                  ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance * abs(rhs), NA)))
+#   tmp.ret <- 
+#     ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance * abs(rhs),
+#            ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance * abs(rhs),# lhs  == rhs,
+#                   ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance * abs(rhs), NA)))
   tmp.ret <- 
     ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance,
     ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance,
     ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance, NA)))
-  #ret.tab <- data.frame()
-  for(i in 1:length(unique.description)){
+  if(sum(is.na(tmp.ret)) > 0) stop("Unknown constraint direction.")
+  ret.tab <- data.frame(description = character(0),
+                        num.inequality = integer(0),
+                        num.violation = integer(0))
+  for(i in seq(length.out = length(unique.description))){
     f <- lp.env$const.description == unique.description[i]
     num.viol <- sum(!tmp.ret[f])
     inc.tab <- data.frame(description = unique.description[i],
@@ -433,12 +528,11 @@ CheckConstraints <- function(solution, exclude = character(0),
 #                           lhs = lhs[f][1],
 #                           tmp.out3 = (lhs <= rhs + tolerance * abs(rhs))[f][1],
 #                           tmp.out4 = (lhs <= rhs + tolerance)[f][1])
-    if(i==1){
-      ret.tab <- inc.tab
-    }else{
-      ret.tab[i, ] <- inc.tab
-    }
+    ret.tab[i, ] <- inc.tab
   }
-  return(ret.tab)
+  f <- lp.env$const.description %in% unique.description
+  tmp.detail <- data.frame(description = lp.env$const.description, lhs, rhs, 
+                           dir = lp.env$const.dir, ok = tmp.ret)
+  return(list(summary = ret.tab, 
+              detail = tmp.detail[f,]))
 }
-

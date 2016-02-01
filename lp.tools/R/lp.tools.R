@@ -361,10 +361,10 @@ RunLP <- function(dont.stop = FALSE){
     model$sense <- const.dir
     model$rhs <- const.rhs
     model$modelsense <- lp.env$direction
-    sink("Output/gurobi.txt")
-    tmp.sol <- gurobi(model)
+    sink(lp.env$gurobi.output)
+    tmp.sol <- gurobi(model, lp.env$gurobi.params)
     sink()
-    status.message <- ""
+    status.message <- tmp.sol$status
 
     #    unlink("Output/gurobi.txt")
     tmp.sol <- list(objval = tmp.sol$objval, solution = tmp.sol$x,
@@ -406,7 +406,11 @@ RunLP <- function(dont.stop = FALSE){
 GetValue <- function(object.name){
   return(lp.env[[object.name]])
 }
-
+#' @export 
+#' @rdname lp.tools
+SetValue <- function(object.name, value){
+  lp.env[[object.name]] <- value
+}
 #' @export 
 #' @rdname lp.tools
 GetThreeCols <- function(mat){

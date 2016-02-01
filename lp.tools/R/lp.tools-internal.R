@@ -6,6 +6,8 @@ backup.lp.env <- new.env()
 assign(x = "optimizer", value = "lpsolve", envir = lp.env)  
 assign(x = "direction", value = "max", envir = lp.env)  
 assign(x = "lpsolve.scale", value = 0, envir = lp.env)  
+assign(x = "gurobi.params", value = list(), envir = lp.env)  
+assign(x = "gurobi.output", value = "gurobi.txt", envir = lp.env)  
 assign(x = "GetTimeStamp", 
        value = function()paste(format(Sys.time(), "%H-%M-%S"), ": ", sep=""),
        envir = lp.env)  

@@ -13,6 +13,7 @@
 \alias{RunLP}
 \alias{SetLPSolveScale}
 \alias{SetObjective}
+\alias{SetValue}
 \alias{lp.tools}
 \title{Tools to solve LP problems}
 \usage{
@@ -32,6 +33,8 @@ SetObjective(objective, constant.numer = 0, objective.numer,
 RunLP(dont.stop = FALSE)
 
 GetValue(object.name)
+
+SetValue(object.name, value)
 
 GetThreeCols(mat)
 

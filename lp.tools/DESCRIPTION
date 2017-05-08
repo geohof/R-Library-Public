@@ -11,5 +11,7 @@ Depends:
     lpSolve
 Description: Helps formulating constraints and obectives for Linear Programming
     (LP) problems.
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
 License: What license is it under?
 RoxygenNote: 5.0.1

@@ -43,8 +43,8 @@ RemoveConstraint(description, rerun = TRUE, feedback = TRUE)
 
 CheckConstraints(solution, exclude = character(0), tolerance = 1e-06)
 
-AddQuadConstraint(description = "", mat, rhs, dir, avoid.duplicates = FALSE,
-  rerun = TRUE, feedback = TRUE)
+AddQuadConstraint(description = "", mat, rhs = 0, rerun = TRUE,
+  feedback = TRUE)
 }
 \arguments{
 \item{objective}{If this parameter is specified, then it defines the 

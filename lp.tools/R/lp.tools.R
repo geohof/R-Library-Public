@@ -236,8 +236,9 @@ SetLPSolveScale <- function(lpsolve.scale){
 #' @export 
 #' @rdname Other
 Initialize <- function(num.v, optimizer, direction, lock.variables){
-  
-  
+  if("quad.const.list" %in% names(lp.env)){
+    rm(list = c("quad.const.list", "quad.const.desc"), envir = lp.env)
+  }
   lp.env$num.v <- num.v
   lp.env$const.description <- character(0)
   lp.env$const.rhs <- numeric(0)
@@ -349,6 +350,10 @@ RunLP <- function(dont.stop = FALSE){
   }
   
   if (lp.env$optimizer == "lpsolve"){
+    if("quad.const.list" %in% names(lp.env)){
+      warning("Quadratic constraints ignored when optimizer is lpsolve.")
+    }
+
     tmp.sol <- lp(direction = lp.env$direction, 
                   objective.in = objective, 
                   #const.mat = as.matrix(const.mat),
@@ -379,6 +384,12 @@ RunLP <- function(dont.stop = FALSE){
     model$sense <- const.dir
     model$rhs <- const.rhs
     model$modelsense <- lp.env$direction
+    if("quad.const.list" %in% names(lp.env)){
+      if(lp.env$fractional == TRUE){
+        stop("Currently, fractional objectives can't be compined with quadratic constaints.")
+      }
+      model$quadcon <- lp.env$quad.const.list
+    }
     sink(lp.env$gurobi.output)
     tmp.sol <- gurobi(model, lp.env$gurobi.params)
     sink()
@@ -569,157 +580,42 @@ CheckConstraints <- function(solution, exclude = character(0),
 
 #' @export 
 #' @rdname Other
-AddQuadConstraint <- function(description = "", mat, rhs, dir, 
-                          avoid.duplicates = FALSE, rerun = TRUE, 
+AddQuadConstraint <- function(description = "", mat, rhs = 0, rerun = TRUE, 
                           feedback = TRUE){
-    # Updates lp.env$quad.const
-    l <- length(lp.env$quad.const)
-    lp.env$quad.const
-      
-    const.dir <- lp.env$const.dir
-    const.rhs <- lp.env$const.rhs
-
-    qc1 <- list()
-qc1$Qc <- spMatrix(3, 3, c(1, 2, 3), c(1, 2, 3), c(1.0, 1.0, -1.0))
-qc1$rhs <- 0.0
-
-# Second quadratic constraint: x^2 - yz <= 0
-qc2 <- list()
-qc2$Qc <- spMatrix(3, 3, c(1, 2), c(1, 3), c(1.0, -1.0))
-qc2$rhs <- 0.0
-
-model$quadcon <- list(qc1, qc2)
-
-  if (class(mat)=="logical"){
-    if(is.na(mat)[1]){
-      if(feedback)
-        cat(lp.env$GetTimeStamp(),
-          "No constraint added for ", 
-          paste(unique(description), collapse = ", "), "\r\n")
-      return(invisible(0))
+  # TODO: Build in intelligence about parameters
+  if(!"quad.const.list" %in% names(lp.env)){
+    lp.env$quad.const.list <- list()
+    lp.env$quad.const.desc <- character(0)
+  }
+  l <- length(lp.env$quad.const.list)
+  quad.const <- list()
+  quad.const$Qc <- mat
+  quad.const$rhs <- rhs
+  lp.env$quad.const.list[[l + 1L]] <- quad.const
+  lp.env$quad.const.desc[l + 1L] <- description
+  
+  
+  
+  if(feedback){
+    cat(lp.env$GetTimeStamp(),
+      "Added quadratic constraint for ",description, ". ", sep = "")
+  }
+  if(rerun){
+    ret <- RunLP(dont.stop = TRUE)        
+    if (ret$status > 0){
+      if(feedback){
+        cat(ret$status.message)
+      }
+    }else{
+      if(feedback){
+        cat("Optimal ", lp.env$obj.description, ": ", 
+            ret$objval, sep = "")
+      }
     }
   }
-  #}else{
-    if (class(mat)=="dsparseVector"){
-      mat <- as.vector(mat)
-    }
-    if (is.null(nrow(mat))){
-      mat <- matrix(data = mat, nrow = 1)
-    }
-    #mat <- as(mat, Class = "dgCMatrix")
-    #mat <- as(Matrix(mat), Class = "dgCMatrix")
-    #mat <- Matrix(mat)
-    mat <- drop0(x = mat)
-    if (ncol(mat) < lp.env$num.v){
-      zero.mat <- sparseMatrix(i = integer(0), j = integer(0), x = numeric(0),
-                               dims = c(nrow(mat), lp.env$num.v - ncol(mat)))
-      mat <- cBind(mat, zero.mat)
-    }
-    num.const <- nrow(mat)
-    if(length(description)==1){
-      description <- rep(description, num.const)    
-    }
-    if(length(rhs)==1){
-      rhs <- rep(rhs, num.const)
-    }
-    if(length(dir)==1){
-      dir <- rep(dir, num.const)
-    }
-#     print("mat")
-#     print(mat)
-#     print(rowSums(mat))
-#     print(class(abs.mat))
-#     print(abs.mat)
-#     print(rowSums(abs.mat))
-    
-    which.valid <- !(is.na(rowSums(mat)) | is.na(rhs))
-    mat <- mat[which.valid, , drop=F]
-    rhs <- rhs[which.valid]
-    dir <- dir[which.valid]
-    description <- description[which.valid]
-    if (sum(which.valid) > 0){
-      # Now apply variable locking
-      mat[,lp.env$unlock.filter]
-#       unlocked.mat <- sparseMatrix(
-#         dims = c(lp.env$num.v, lp.env$num.unlocked),
-#         i = which(lp.env$unlock.filter),
-#         j = 1:lp.env$num.unlocked,
-#         x = rep(1, lp.env$num.unlocked))
-#       
-#       locked.mat <- sparseMatrix(
-#         dims = c(lp.env$num.v, lp.env$num.locked),
-#         i = which(lp.env$lock.filter),
-#         j = 1:lp.env$num.locked,
-#         x = rep(1, lp.env$num.locked))
-      
-                
-      rhs.reduction <- as.vector(mat[,lp.env$lock.filter, drop=FALSE] %*% 
-           lp.env$locked.vec)
-      rhs <- rhs - rhs.reduction
-      rhs[abs(rhs) < 1E-6] <- 0 
-      mat <- mat[,lp.env$unlock.filter, drop=FALSE]
-      f <- rowSums(mat ^ 2) > 0
-      if  (sum(((rhs[!f] < 0) & (dir[!f] %in% c("<=", "="))) |
-               ((rhs[!f] > 0) & (dir[!f] %in% c(">=", "=")))) > 0)
-        warning("Blocking contradicts constraint.")
-      mat <- mat[f, , drop = FALSE]
-      rhs <- rhs[f]
-      dir <- dir[f]
-      description <- description[f]
-      # Apply normalization
-      # norm.matrix <- Diagonal(x = abs(1 / rhs))
-      abs.mat <- as(abs(mat), Class = "dgCMatrix")
-      norm.matrix <- Matrix::Diagonal(x = 1 / rowSums(abs.mat))
-      mat <- norm.matrix %*% mat 
-      rhs <- as.vector(norm.matrix %*% rhs)
-      #      mat <- drop0(x = mat, tol = 1e-4)
-      if (avoid.duplicates){
-        f <- rep(TRUE, length(rhs))
-        for(i in seq(length.out = nrow(mat))){
-          m <- apply(lp.env$const.mat, MARGIN = 1, function(x) identical(x, mat[i,]))
-          if (sum(m) > 0){
-            f[i] <- FALSE
-          }
-        }
-        mat <- mat[f, , drop = FALSE]
-        rhs <- rhs[f]
-        dir <- dir[f]
-        description <- description[f]
-      }
-
-      lp.env$const.description <- c(lp.env$const.description, description)
-      lp.env$const.mat <- rBind(lp.env$const.mat, mat)
-      lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
-      lp.env$const.dir <- c(lp.env$const.dir, dir)
-      ret.value <- length(rhs)
-    }else{
-      ret.value <- 0
-    }
-    if(ret.value > 0){
-      UpdateFractionalObjective()
-      if(feedback)
-        cat(lp.env$GetTimeStamp(),
-            "Number of inequalities added for ", 
-            paste(unique(description), collapse = ", "), ": ", 
-            length(rhs), ". ", sep = "")
-      if(rerun){
-        ret <- RunLP(dont.stop = TRUE)        
-        if (ret$status > 0){
-          if(feedback)
-            cat(ret$status.message)
-        }else{
-          if(feedback)
-            cat("Optimal ", lp.env$obj.description, ": ", 
-              ret$objval, sep = "")
-        }
-      }
-      if(feedback)
-        cat("\r\n")
-    }else{
-      if(feedback)
-        cat(lp.env$GetTimeStamp(), "No constraint added.\r\n", sep="")
-    }
-  return(invisible(ret.value))
+  if(feedback){
+    cat("\r\n")
+  }
 }  
 
 

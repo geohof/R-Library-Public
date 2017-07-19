@@ -5,8 +5,13 @@ Version: 1.0
 Date: 2015-06-02
 Author: Georg
 Maintainer: Who to complain to <yourfault@somewhere.net>
-Imports: Matrix
+Imports:
+    Matrix
 Depends:
     lpSolve
-Description: Helps formulating constraints and obectives for Linear Programming (LP) problems.
+Description: Helps formulating constraints and obectives for Linear Programming
+    (LP) problems.
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr
 License: What license is it under?
+RoxygenNote: 5.0.1

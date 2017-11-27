@@ -307,7 +307,7 @@ UpdateFractionalObjective <- function(){
 #' @param objective If this parameter is specified, then it defines the 
 #' objective. If it is not sepcified, then the objective is fractional 
 #' and is defined by the other four parameters. 
-SetObjective <- function(objective, constant.numer = 0, objective.numer,
+SetObjective <- function(objective, quad.obj, constant.numer = 0, objective.numer,
                          constant.denom = 0, objective.denom, scale.factor = 1, 
                          direction, description = "value"){
   lp.env$obj.description <- description
@@ -318,6 +318,12 @@ SetObjective <- function(objective, constant.numer = 0, objective.numer,
     lp.env$fractional <- FALSE
     lp.env$objective.full <- c(objective, rep(0, lp.env$num.v - length(objective)))
     lp.env$objective <- lp.env$objective.full[lp.env$unlock.filter]
+    if(!missing(quad.obj)){
+      lp.env$quad.obj.full <- quad.obj
+      lp.env$quad.obj <- quad.obj[lp.env$unlock.filter, lp.env$unlock.filter]
+    }else{
+      lp.env$quad.obj = NULL
+    }
   }else{
     lp.env$fractional <- TRUE
     lp.env$constant.numer <- (constant.numer  +
@@ -384,9 +390,15 @@ RunLP <- function(dont.stop = FALSE){
     model$sense <- const.dir
     model$rhs <- const.rhs
     model$modelsense <- lp.env$direction
+    if(!is.null(lp.env$quad.obj)){
+      if(lp.env$fractional == TRUE){
+        stop("Currently, fractional objectives can't be combined with quadratic objectives.")
+      }
+      model$Q <- lp.env$quad.obj
+    }
     if("quad.const.list" %in% names(lp.env)){
       if(lp.env$fractional == TRUE){
-        stop("Currently, fractional objectives can't be compined with quadratic constaints.")
+        stop("Currently, fractional objectives can't be combined with quadratic constaints.")
       }
       model$quadcon <- lp.env$quad.const.list
     }
@@ -420,7 +432,11 @@ RunLP <- function(dont.stop = FALSE){
     }else{
       sol[lp.env$lock.filter] <- lp.env$locked.vec
       sol[lp.env$unlock.filter] <- tmp.sol$solution
-      ret$objval <- sum(sol * lp.env$objective.full)  
+      ret$objval <- tmp.sol$objval 
+      if(ret$objval != tmp.sol$objval){
+        stop("Objective value from optimizer: ", tmp.sol$objval, 
+             "  Calucalted objective value: ", sum(sol * lp.env$objective.full))
+      }
     }
     ret$solution <- sol
   }

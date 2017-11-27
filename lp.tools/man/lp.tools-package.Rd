@@ -9,4 +9,3 @@
 Helps formulating constraints and obectives for 
 Linear Programming (LP) problems.
 }
-

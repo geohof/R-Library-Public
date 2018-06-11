@@ -22,55 +22,62 @@
 
 #' @export
 #' @examples
+#' 
+#' 
 #' require(lp.tools)
 #' require(Matrix)
 #' num.v <- 10
 #' set.seed(60606)
-#' Initialize(num.v)
-#' SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")
-#' AddConstraint(description = "Upper Bound",
+#' oo <- Initialize(num.v)
+#' SetObjective(oo, objective = rep(1, num.v), 
+#'              description = "Sum", direction = "max")
+#' AddConstraint(oo, description = "Upper Bound",
 #'               mat = Diagonal(num.v), 
 #'               rhs = 1, 
 #'               dir = "<=")
-#' AddConstraint(description = "Random Bounds", 
+#' AddConstraint(oo, description = "Random Bounds", 
 #'               mat = matrix(runif(3 * num.v), ncol=num.v),
 #'               rhs = 1, 
 #'               dir = "<=")
-#' AddConstraint(description = "Random Bound", 
+#' AddConstraint(oo, description = "Random Bound", 
 #'               mat = runif(num.v),
 #'               rhs = 1, 
 #'               dir = "<=")
-#' AddConstraint(description = "Random Bounds", 
+#' AddConstraint(oo, description = "Random Bounds", 
 #'               mat = Matrix(matrix(runif(3 * (num.v - 1)), ncol=(num.v - 1))),
 #'               rhs = 1, 
 #'               dir = "<=")
-#' GetCostOfConstraint()
+#' GetCostOfConstraint(oo)
 #' 
-#' Initialize(num.v, lock.variables = rep(.3, 4))
+#' oo <- Initialize(oo, num.v, lock.variables = rep(.3, 4))
 #' 
-#' SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")
-#' AddConstraint(description = "Upper Bound", 
+#' SetObjective(oo, objective = rep(1, num.v), 
+#'              description = "Sum", direction = "max")
+#' AddConstraint(oo, description = "Upper Bound", 
 #'               mat = Diagonal(num.v), 
 #'               rhs = 1, 
 #'               dir = "<=")
-#' AddConstraint(description = "Random Bounds", 
+#' AddConstraint(oo, description = "Random Bounds", 
 #'               mat = matrix(runif(3 * num.v), ncol=num.v),
 #'               rhs = 1, 
 #'               dir = "<=")
 #' 
-#' Initialize(num.v, lock.variables = rep(.3, 4))
+#' oo <- Initialize(num.v, lock.variables = rep(.3, 4))
 #' 
-#' SetObjective(objective.numer = runif(num.v), objective.denom  = runif(num.v), 
+#' SetObjective(oo, objective.numer = runif(num.v), 
+#'              objective.denom  = runif(num.v), 
 #'              description = "Fraction", direction = "max")
-#' AddConstraint(description = "Upper Bound", 
+#' AddConstraint(oo, description = "Upper Bound", 
 #'               mat = Diagonal(num.v), 
 #'               rhs = 1, 
 #'               dir = "<=")
-#' AddConstraint(description = "Random Bounds", 
+#' AddConstraint(oo, description = "Random Bounds", 
 #'               mat = matrix(runif(3 * num.v), ncol=num.v),
 #'               rhs = 1, 
 #'               dir = "<=")
-#' RemoveConstraint(description = "Random Bounds")
+#' RemoveConstraint(oo, description = "Random Bounds")
+#' 
+
 
 #' @import Matrix
 
@@ -82,14 +89,15 @@
 
 #' @export 
 #' @rdname Constraints
-AddConstraint <- function(description = "", mat, rhs, dir, 
+AddConstraint <- function(opt.obj,
+                          description = "", mat, rhs, dir, 
                           avoid.duplicates = FALSE, rerun = TRUE, 
                           feedback = TRUE){
   #if (length(is.na(mat))==1 & is.na(mat)[1]){
   if (class(mat)=="logical"){
     if(is.na(mat)[1]){
       if(feedback)
-        cat(lp.env$GetTimeStamp(),
+        cat(opt.obj$GetTimeStamp(),
           "No constraint added for ", 
           paste(unique(description), collapse = ", "), "\r\n")
       return(invisible(0))
@@ -106,10 +114,10 @@ AddConstraint <- function(description = "", mat, rhs, dir,
     #mat <- as(Matrix(mat), Class = "dgCMatrix")
     #mat <- Matrix(mat)
     mat <- drop0(x = mat)
-    if (ncol(mat) < lp.env$num.v){
+    if (ncol(mat) < opt.obj$num.v){
       zero.mat <- sparseMatrix(i = integer(0), j = integer(0), x = numeric(0),
-                               dims = c(nrow(mat), lp.env$num.v - ncol(mat)))
-      mat <- cBind(mat, zero.mat)
+                               dims = c(nrow(mat), opt.obj$num.v - ncol(mat)))
+      mat <- cbind(mat, zero.mat)
     }
     num.const <- nrow(mat)
     if(length(description)==1){
@@ -135,25 +143,25 @@ AddConstraint <- function(description = "", mat, rhs, dir,
     description <- description[which.valid]
     if (sum(which.valid) > 0){
       # Now apply variable locking
-      mat[,lp.env$unlock.filter]
+      mat[,opt.obj$unlock.filter]
 #       unlocked.mat <- sparseMatrix(
-#         dims = c(lp.env$num.v, lp.env$num.unlocked),
-#         i = which(lp.env$unlock.filter),
-#         j = 1:lp.env$num.unlocked,
-#         x = rep(1, lp.env$num.unlocked))
+#         dims = c(opt.obj$num.v, opt.obj$num.unlocked),
+#         i = which(opt.obj$unlock.filter),
+#         j = 1:opt.obj$num.unlocked,
+#         x = rep(1, opt.obj$num.unlocked))
 #       
 #       locked.mat <- sparseMatrix(
-#         dims = c(lp.env$num.v, lp.env$num.locked),
-#         i = which(lp.env$lock.filter),
-#         j = 1:lp.env$num.locked,
-#         x = rep(1, lp.env$num.locked))
+#         dims = c(opt.obj$num.v, opt.obj$num.locked),
+#         i = which(opt.obj$lock.filter),
+#         j = 1:opt.obj$num.locked,
+#         x = rep(1, opt.obj$num.locked))
       
                 
-      rhs.reduction <- as.vector(mat[,lp.env$lock.filter, drop=FALSE] %*% 
-           lp.env$locked.vec)
+      rhs.reduction <- as.vector(mat[,opt.obj$lock.filter, drop=FALSE] %*% 
+           opt.obj$locked.vec)
       rhs <- rhs - rhs.reduction
       rhs[abs(rhs) < 1E-6] <- 0 
-      mat <- mat[,lp.env$unlock.filter, drop=FALSE]
+      mat <- mat[,opt.obj$unlock.filter, drop=FALSE]
       f <- rowSums(mat ^ 2) > 0
       if  (sum(((rhs[!f] < 0) & (dir[!f] %in% c("<=", "="))) |
                ((rhs[!f] > 0) & (dir[!f] %in% c(">=", "=")))) > 0)
@@ -172,7 +180,7 @@ AddConstraint <- function(description = "", mat, rhs, dir,
       if (avoid.duplicates){
         f <- rep(TRUE, length(rhs))
         for(i in seq(length.out = nrow(mat))){
-          m <- apply(lp.env$const.mat, MARGIN = 1, function(x) identical(x, mat[i,]))
+          m <- apply(opt.obj$const.mat, MARGIN = 1, function(x) identical(x, mat[i,]))
           if (sum(m) > 0){
             f[i] <- FALSE
           }
@@ -183,29 +191,29 @@ AddConstraint <- function(description = "", mat, rhs, dir,
         description <- description[f]
       }
 
-      lp.env$const.description <- c(lp.env$const.description, description)
-      lp.env$const.mat <- rBind(lp.env$const.mat, mat)
-      lp.env$const.rhs <- c(lp.env$const.rhs, rhs)
-      lp.env$const.dir <- c(lp.env$const.dir, dir)
+      opt.obj$const.description <- c(opt.obj$const.description, description)
+      opt.obj$const.mat <- rbind(opt.obj$const.mat, mat)
+      opt.obj$const.rhs <- c(opt.obj$const.rhs, rhs)
+      opt.obj$const.dir <- c(opt.obj$const.dir, dir)
       ret.value <- length(rhs)
     }else{
       ret.value <- 0
     }
     if(ret.value > 0){
-      UpdateFractionalObjective()
+      UpdateFractionalObjective(opt.obj = opt.obj)
       if(feedback)
-        cat(lp.env$GetTimeStamp(),
+        cat(opt.obj$GetTimeStamp(),
             "Number of inequalities added for ", 
             paste(unique(description), collapse = ", "), ": ", 
             length(rhs), ". ", sep = "")
       if(rerun){
-        ret <- RunLP(dont.stop = TRUE)        
+        ret <- RunLP(dont.stop = TRUE, opt.obj = opt.obj)        
         if (ret$status > 0){
           if(feedback)
             cat(ret$status.message)
         }else{
           if(feedback)
-            cat("Optimal ", lp.env$obj.description, ": ", 
+            cat("Optimal ", opt.obj$obj.description, ": ", 
               ret$objval, sep = "")
         }
       }
@@ -213,7 +221,7 @@ AddConstraint <- function(description = "", mat, rhs, dir,
         cat("\r\n")
     }else{
       if(feedback)
-        cat(lp.env$GetTimeStamp(), "No constraint added.\r\n", sep="")
+        cat(opt.obj$GetTimeStamp(), "No constraint added.\r\n", sep="")
     }
   return(invisible(ret.value))
 }  
@@ -229,25 +237,37 @@ AddConstraint <- function(description = "", mat, rhs, dir,
 
 #' @export 
 #' @rdname Other
-SetLPSolveScale <- function(lpsolve.scale){
-  lp.env$lpsolve.scale <- lpsolve.scale
+SetLPSolveScale <- function(opt.obj, lpsolve.scale){
+  opt.obj$lpsolve.scale <- lpsolve.scale
 }
 
 #' @export 
 #' @rdname Other
-Initialize <- function(num.v, optimizer, direction, lock.variables){
-  if("quad.const.list" %in% names(lp.env)){
-    rm(list = c("quad.const.list", "quad.const.desc"), envir = lp.env)
-  }
-  lp.env$num.v <- num.v
-  lp.env$const.description <- character(0)
-  lp.env$const.rhs <- numeric(0)
-  lp.env$const.dir <- character(0)
+Initialize <- function(num.v, optimizer = "lpsolve", direction = "max", 
+                       lock.variables,
+                       lpsolve.scale = 0, 
+                       gurobi.params = list(), 
+                       gurobi.output = "gurobi.txt",
+                       GetTimeStamp = function()paste(format(Sys.time(), "%H-%M-%S"), ": ", sep="")
+                       ){
+  opt.obj <- new.env()
+  opt.obj$num.v <- num.v
+  opt.obj$optimizer <- optimizer
+  opt.obj$direction <- direction
+  if(!missing(lock.variables))opt.obj$lock.variables <- lock.variables
+  opt.obj$lpsolve.scale <- lpsolve.scale 
+  opt.obj$gurobi.params <- gurobi.params
+  opt.obj$gurobi.output = gurobi.output
+  opt.obj$GetTimeStamp = GetTimeStamp
+                       
+  opt.obj$const.description <- character(0)
+  opt.obj$const.rhs <- numeric(0)
+  opt.obj$const.dir <- character(0)
   if (!missing(optimizer)){
-    lp.env$optimizer <- optimizer
+    opt.obj$optimizer <- optimizer
   }
   if (!missing(direction)){
-    lp.env$direction <- direction
+    opt.obj$direction <- direction
   }
   if (!missing(lock.variables)){
     if(num.v==sum(!is.na(lock.variables))){
@@ -256,49 +276,50 @@ Initialize <- function(num.v, optimizer, direction, lock.variables){
     if(length(lock.variables) < num.v){
       lock.variables <- c(lock.variables, rep(NA, num.v - length(lock.variables)))
     }
-    lp.env$lock.variables <- lock.variables
-    lp.env$num.unlocked <- sum(is.na(lock.variables))
+    opt.obj$lock.variables <- lock.variables
+    opt.obj$num.unlocked <- sum(is.na(lock.variables))
   }else{
-    lp.env$lock.variables <- rep(NA, num.v)
+    opt.obj$lock.variables <- rep(NA, num.v)
   }
-  lp.env$lock.filter <- !is.na(lp.env$lock.variables)
-  lp.env$unlock.filter <- !lp.env$lock.filter
-  lp.env$num.unlocked <- sum(lp.env$unlock.filter)
-  lp.env$num.locked <- sum(lp.env$lock.filter)
-  lp.env$locked.vec <- lp.env$lock.variables[lp.env$lock.filter]
-  lp.env$const.mat <- sparseMatrix(
+  opt.obj$lock.filter <- !is.na(opt.obj$lock.variables)
+  opt.obj$unlock.filter <- !opt.obj$lock.filter
+  opt.obj$num.unlocked <- sum(opt.obj$unlock.filter)
+  opt.obj$num.locked <- sum(opt.obj$lock.filter)
+  opt.obj$locked.vec <- opt.obj$lock.variables[opt.obj$lock.filter]
+  opt.obj$const.mat <- sparseMatrix(
     i = integer(0), j = integer(0), 
-    x = numeric(0), dims = c(0, lp.env$num.unlocked))
+    x = numeric(0), dims = c(0, opt.obj$num.unlocked))
+  return(opt.obj)
 }
 
 #' @export 
 #' @rdname Backup
 #' @title Backup
 
-Backup <- function(){
-  for(var.name in ls(lp.env, all.names=TRUE)){
-    backup.lp.env[[var.name]] <- lp.env[[var.name]]
+Backup <- function(opt.obj){
+  for(var.name in ls(opt.obj, all.names=TRUE)){
+    backup.opt.obj[[var.name]] <- opt.obj[[var.name]]
   }
 }
 
 #' @export 
 #' @rdname Other
-Restore <- function(){
-  for(var.name in ls(backup.lp.env, all.names=TRUE)){
-    lp.env[[var.name]] <- backup.lp.env[[var.name]]
+Restore <- function(opt.obj){
+  for(var.name in ls(backup.opt.obj, all.names=TRUE)){
+    opt.obj[[var.name]] <- backup.opt.obj[[var.name]]
   }
 }
 
 
 
-UpdateFractionalObjective <- function(){
-  if (lp.env$fractional == TRUE){
-    lp.env$trans.const.mat <- cBind(lp.env$const.mat, -lp.env$const.rhs)
-    lp.env$trans.const.mat <- 
-      rBind(lp.env$trans.const.mat, 
-            c(lp.env$objective.denom, lp.env$constant.denom))
-    lp.env$trans.const.rhs <- c(rep(0, nrow(lp.env$const.mat)), 1)
-    lp.env$trans.const.dir <- c(lp.env$const.dir, "=")
+UpdateFractionalObjective <- function(opt.obj){
+  if (opt.obj$fractional == TRUE){
+    opt.obj$trans.const.mat <- cbind(opt.obj$const.mat, -opt.obj$const.rhs)
+    opt.obj$trans.const.mat <- 
+      rbind(opt.obj$trans.const.mat, 
+            c(opt.obj$objective.denom, opt.obj$constant.denom))
+    opt.obj$trans.const.rhs <- c(rep(0, nrow(opt.obj$const.mat)), 1)
+    opt.obj$trans.const.dir <- c(opt.obj$const.dir, "=")
   }
 }
 
@@ -307,66 +328,66 @@ UpdateFractionalObjective <- function(){
 #' @param objective If this parameter is specified, then it defines the 
 #' objective. If it is not sepcified, then the objective is fractional 
 #' and is defined by the other four parameters. 
-SetObjective <- function(objective, quad.obj, constant.numer = 0, objective.numer,
+SetObjective <- function(opt.obj, objective, quad.obj, constant.numer = 0, objective.numer,
                          constant.denom = 0, objective.denom, scale.factor = 1, 
                          direction, description = "value"){
-  lp.env$obj.description <- description
+  opt.obj$obj.description <- description
   if (!missing(direction)){
-    lp.env$direction <- direction
+    opt.obj$direction <- direction
   }
   if(!missing(objective)){
-    lp.env$fractional <- FALSE
-    lp.env$objective.full <- c(objective, rep(0, lp.env$num.v - length(objective)))
-    lp.env$objective <- lp.env$objective.full[lp.env$unlock.filter]
+    opt.obj$fractional <- FALSE
+    opt.obj$objective.full <- c(objective, rep(0, opt.obj$num.v - length(objective)))
+    opt.obj$objective <- opt.obj$objective.full[opt.obj$unlock.filter]
     if(!missing(quad.obj)){
-      lp.env$quad.obj.full <- quad.obj
-      lp.env$quad.obj <- quad.obj[lp.env$unlock.filter, lp.env$unlock.filter]
+      opt.obj$quad.obj.full <- quad.obj
+      opt.obj$quad.obj <- quad.obj[opt.obj$unlock.filter, opt.obj$unlock.filter]
     }else{
-      lp.env$quad.obj = NULL
+      opt.obj$quad.obj = NULL
     }
   }else{
-    lp.env$fractional <- TRUE
-    lp.env$constant.numer <- (constant.numer  +
-      sum(lp.env$locked.vec * objective.numer[lp.env$lock.filter])) / scale.factor
-    lp.env$objective.numer <- objective.numer[lp.env$unlock.filter] / scale.factor
-    lp.env$constant.denom <- (constant.denom +
-      sum(lp.env$locked.vec * objective.denom[lp.env$lock.filter])) / scale.factor
-    lp.env$objective.denom <- objective.denom[lp.env$unlock.filter] / scale.factor
+    opt.obj$fractional <- TRUE
+    opt.obj$constant.numer <- (constant.numer  +
+      sum(opt.obj$locked.vec * objective.numer[opt.obj$lock.filter])) / scale.factor
+    opt.obj$objective.numer <- objective.numer[opt.obj$unlock.filter] / scale.factor
+    opt.obj$constant.denom <- (constant.denom +
+      sum(opt.obj$locked.vec * objective.denom[opt.obj$lock.filter])) / scale.factor
+    opt.obj$objective.denom <- objective.denom[opt.obj$unlock.filter] / scale.factor
   
-    lp.env$trans.objective <- c(lp.env$objective.numer, lp.env$constant.numer)
+    opt.obj$trans.objective <- c(opt.obj$objective.numer, opt.obj$constant.numer)
 
   }
 }
 
 #' @export 
 #' @rdname Other
-RunLP <- function(dont.stop = FALSE){
-  if (is.null(lp.env$fractional)){
+RunLP <- function(opt.obj, dont.stop = FALSE){
+  if (is.null(opt.obj$fractional)){
     stop("Use SetObjective before you call RunLP.")
-  }else if (!lp.env$fractional){    
-    objective <- lp.env$objective
-    const.mat <- lp.env$const.mat
-    const.dir <- lp.env$const.dir
-    const.rhs <- lp.env$const.rhs
+  }else if (!opt.obj$fractional){    
+    objective <- opt.obj$objective
+    const.mat <- opt.obj$const.mat
+    const.dir <- opt.obj$const.dir
+    const.rhs <- opt.obj$const.rhs
   }else{
-    objective <- lp.env$trans.objective
-    const.mat <- lp.env$trans.const.mat
-    const.dir <- lp.env$trans.const.dir
-    const.rhs <- lp.env$trans.const.rhs
+    objective <- opt.obj$trans.objective
+    const.mat <- opt.obj$trans.const.mat
+    const.dir <- opt.obj$trans.const.dir
+    const.rhs <- opt.obj$trans.const.rhs
   }
   
-  if (lp.env$optimizer == "lpsolve"){
-    if("quad.const.list" %in% names(lp.env)){
+  if (opt.obj$optimizer == "lpsolve"){
+    if("quad.const.list" %in% names(opt.obj)){
       warning("Quadratic constraints ignored when optimizer is lpsolve.")
     }
 
-    tmp.sol <- lp(direction = lp.env$direction, 
+    tmp.sol <- lp(direction = opt.obj$direction, 
                   objective.in = objective, 
                   #const.mat = as.matrix(const.mat),
                   const.dir = const.dir,
                   const.rhs = const.rhs,
                   dense.const = GetThreeCols(const.mat),
-                  ,scale = lp.env$lpsolve.scale
+                  ,scale = opt.obj$lpsolve.scale
     )
     status.message <- ""
     if(tmp.sol$status==3){
@@ -383,27 +404,27 @@ RunLP <- function(dont.stop = FALSE){
             " See http://lpsolve.sourceforge.net/5.5/solve.htm", sep=""))
     }
     
-  }else if (lp.env$optimizer == "gurobi"){
+  }else if (opt.obj$optimizer == "gurobi"){
     model <- list()
     model$A <- const.mat
     model$obj <- objective
     model$sense <- const.dir
     model$rhs <- const.rhs
-    model$modelsense <- lp.env$direction
-    if(!is.null(lp.env$quad.obj)){
-      if(lp.env$fractional == TRUE){
+    model$modelsense <- opt.obj$direction
+    if(!is.null(opt.obj$quad.obj)){
+      if(opt.obj$fractional == TRUE){
         stop("Currently, fractional objectives can't be combined with quadratic objectives.")
       }
-      model$Q <- lp.env$quad.obj
+      model$Q <- opt.obj$quad.obj
     }
-    if("quad.const.list" %in% names(lp.env)){
-      if(lp.env$fractional == TRUE){
+    if("quad.const.list" %in% names(opt.obj)){
+      if(opt.obj$fractional == TRUE){
         stop("Currently, fractional objectives can't be combined with quadratic constaints.")
       }
-      model$quadcon <- lp.env$quad.const.list
+      model$quadcon <- opt.obj$quad.const.list
     }
-    sink(lp.env$gurobi.output)
-    tmp.sol <- gurobi(model, lp.env$gurobi.params)
+    sink(opt.obj$gurobi.output)
+    tmp.sol <- gurobi(model, opt.obj$gurobi.params)
     sink()
     status.message <- tmp.sol$status
 
@@ -421,41 +442,31 @@ RunLP <- function(dont.stop = FALSE){
     ret <- list(objval = NA, solution = NA,
                 status = tmp.sol$status, status.message = status.message)
   }else{
-    sol <- rep(0, lp.env$num.v)
+    sol <- rep(0, opt.obj$num.v)
     ret <- list(status = tmp.sol$status, status.message = status.message)
-    if(lp.env$fractional){
-      ret$t <- tmp.sol$solution[lp.env$num.unlocked + 1L]
-      sol[lp.env$unlock.filter] <- tmp.sol$solution[1:lp.env$num.unlocked]
+    if(opt.obj$fractional){
+      ret$t <- tmp.sol$solution[opt.obj$num.unlocked + 1L]
+      sol[opt.obj$unlock.filter] <- tmp.sol$solution[1:opt.obj$num.unlocked]
       sol <- sol / ret$t
-      sol[lp.env$lock.filter] <- lp.env$locked.vec
+      sol[opt.obj$lock.filter] <- opt.obj$locked.vec
       ret$objval <- tmp.sol$objval
     }else{
-      sol[lp.env$lock.filter] <- lp.env$locked.vec
-      sol[lp.env$unlock.filter] <- tmp.sol$solution
+      sol[opt.obj$lock.filter] <- opt.obj$locked.vec
+      sol[opt.obj$unlock.filter] <- tmp.sol$solution
       ret$objval <- tmp.sol$objval 
       if(ret$objval != tmp.sol$objval){
         stop("Objective value from optimizer: ", tmp.sol$objval, 
-             "  Calucalted objective value: ", sum(sol * lp.env$objective.full))
+             "  Calucalted objective value: ", sum(sol * opt.obj$objective.full))
       }
     }
     ret$solution <- sol
   }
   # max(const.mat %*% tmp.sol.l$solution - const.rhs)
   # max(const.mat %*% tmp.sol.g$x - const.rhs)
-  lp.env$last.solution <- ret
+  opt.obj$last.solution <- ret
   return(ret)
 }
 
-#' @export 
-#' @rdname Other
-GetValue <- function(object.name){
-  return(lp.env[[object.name]])
-}
-#' @export 
-#' @rdname Other
-SetValue <- function(object.name, value){
-  lp.env[[object.name]] <- value
-}
 #' @export 
 #' @rdname Other
 GetThreeCols <- function(mat){
@@ -469,13 +480,13 @@ GetThreeCols <- function(mat){
 
 #' @export 
 #' @rdname Other
-GetCostOfConstraint <- function(exclude = character(0)){
-  tmp.sol <- RunLP(dont.stop = TRUE)
+GetCostOfConstraint <- function(opt.obj, exclude = character(0)){
+  tmp.sol <- RunLP(dont.stop = TRUE, opt.obj = opt.obj)
   target.objval <- tmp.sol$objval
-  tmp.const.mat <- lp.env$const.mat
-  tmp.const.rhs <- lp.env$const.rhs
-  tmp.const.dir <- lp.env$const.dir
-  tmp.const.description <- lp.env$const.description
+  tmp.const.mat <- opt.obj$const.mat
+  tmp.const.rhs <- opt.obj$const.rhs
+  tmp.const.dir <- opt.obj$const.dir
+  tmp.const.description <- opt.obj$const.description
   
   unique.description <- unique(tmp.const.description)
   unique.description <- unique.description[!unique.description %in% exclude]
@@ -486,23 +497,23 @@ GetCostOfConstraint <- function(exclude = character(0)){
   status.message.vec <- numeric(0)
   for(i in 1:num.const){
     f <- tmp.const.description!=unique.description[i]
-    lp.env$const.mat <- tmp.const.mat[f, , drop = FALSE]
-    lp.env$const.rhs <- tmp.const.rhs[f]
-    lp.env$const.dir <- tmp.const.dir[f]
-    lp.env$const.description <- tmp.const.description[f]
-    UpdateFractionalObjective()
-    tmp.sol <- RunLP(dont.stop = TRUE)  
+    opt.obj$const.mat <- tmp.const.mat[f, , drop = FALSE]
+    opt.obj$const.rhs <- tmp.const.rhs[f]
+    opt.obj$const.dir <- tmp.const.dir[f]
+    opt.obj$const.description <- tmp.const.description[f]
+    UpdateFractionalObjective(opt.obj = opt.obj)
+    tmp.sol <- RunLP(dont.stop = TRUE, opt.obj = opt.obj)  
     objval.vec[i] <- tmp.sol$objval
     status.message.vec[i] <- tmp.sol$status.message
   }
   
-  lp.env$const.mat <- tmp.const.mat
-  lp.env$const.rhs <- tmp.const.rhs 
-  lp.env$const.dir <- tmp.const.dir 
-  lp.env$const.description <- tmp.const.description
-  UpdateFractionalObjective()
+  opt.obj$const.mat <- tmp.const.mat
+  opt.obj$const.rhs <- tmp.const.rhs 
+  opt.obj$const.dir <- tmp.const.dir 
+  opt.obj$const.description <- tmp.const.description
+  UpdateFractionalObjective(opt.obj = opt.obj)
   
-  tmp.sign <- ifelse(lp.env$direction=="max", 1, -1)
+  tmp.sign <- ifelse(opt.obj$direction=="max", 1, -1)
   ret <- data.frame(desc = unique.description, 
                     objective = objval.vec, 
                     cost = tmp.sign * (objval.vec - target.objval), 
@@ -513,32 +524,32 @@ GetCostOfConstraint <- function(exclude = character(0)){
 
 #' @export 
 #' @rdname Other
-GetLastSolution <- function(){
-  return(lp.env$last.solution)
+GetLastSolution <- function(opt.obj){
+  return(opt.obj$last.solution)
 }
 
 #' @export 
 #' @rdname Other
-RemoveConstraint <- function(description, rerun = TRUE, feedback = TRUE){
-  f <- lp.env$const.description!=description
-  lp.env$const.mat <- lp.env$const.mat[f, , drop=FALSE]
-  lp.env$const.rhs <- lp.env$const.rhs[f]
-  lp.env$const.dir <- lp.env$const.dir[f]
-  lp.env$const.description <- lp.env$const.description[f]
-  UpdateFractionalObjective()
+RemoveConstraint <- function(opt.obj, description, rerun = TRUE, feedback = TRUE){
+  f <- opt.obj$const.description!=description
+  opt.obj$const.mat <- opt.obj$const.mat[f, , drop=FALSE]
+  opt.obj$const.rhs <- opt.obj$const.rhs[f]
+  opt.obj$const.dir <- opt.obj$const.dir[f]
+  opt.obj$const.description <- opt.obj$const.description[f]
+  UpdateFractionalObjective(opt.obj = opt.obj)
   if(feedback)
-    cat(lp.env$GetTimeStamp(),
+    cat(opt.obj$GetTimeStamp(),
         "Number of inequalities removed for ", 
         paste(unique(description), collapse = ", "), ": ", 
         sum(!f), ". ", sep = "")
   if(rerun){
-    ret <- RunLP(dont.stop = TRUE)
+    ret <- RunLP(dont.stop = TRUE, opt.obj = opt.obj)
     if (ret$status > 0){
       if(feedback)
         cat(ret$status.message)
     }else{
       if(feedback)
-        cat("Optimal ", lp.env$obj.description, ": ", ret$objval, sep = "")
+        cat("Optimal ", opt.obj$obj.description, ": ", ret$objval, sep = "")
     }
   }
   if(feedback)
@@ -547,84 +558,84 @@ RemoveConstraint <- function(description, rerun = TRUE, feedback = TRUE){
 
 #' @export 
 #' @rdname Other
-CheckConstraints <- function(solution, exclude = character(0),
+CheckConstraints <- function(opt.objsolution, exclude = character(0),
                              tolerance = 1E-6){
-  unique.description <- unique(lp.env$const.description)
+  unique.description <- unique(opt.obj$const.description)
   unique.description <- unique.description[!unique.description %in% exclude]
 #   if(length(unique.description) == 0){
 #     cat("No constraints to check.")
 #     return(data.frame())
 #   }
-  if (!all(solution[lp.env$lock.filter]==lp.env$locked.vec)){
+  if (!all(solution[opt.obj$lock.filter]==opt.obj$locked.vec)){
     cat("Locked variables not reflected in this solution.\r\n")
   }
-  lhs <- as.vector(lp.env$const.mat %*% solution[lp.env$unlock.filter])
-  rhs <- lp.env$const.rhs
+  lhs <- as.vector(opt.obj$const.mat %*% solution[opt.obj$unlock.filter])
+  rhs <- opt.obj$const.rhs
 #   tmp.ret <- 
-#     ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance * abs(rhs),
-#            ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance * abs(rhs),# lhs  == rhs,
-#                   ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance * abs(rhs), NA)))
+#     ifelse(opt.obj$const.dir=="<=", lhs <= rhs + tolerance * abs(rhs),
+#            ifelse(opt.obj$const.dir=="=", abs(lhs - rhs) < tolerance * abs(rhs),# lhs  == rhs,
+#                   ifelse(opt.obj$const.dir==">=", lhs  >= rhs - tolerance * abs(rhs), NA)))
   tmp.ret <- 
-    ifelse(lp.env$const.dir=="<=", lhs <= rhs + tolerance,
-    ifelse(lp.env$const.dir=="=", abs(lhs - rhs) < tolerance,
-    ifelse(lp.env$const.dir==">=", lhs  >= rhs - tolerance, NA)))
+    ifelse(opt.obj$const.dir=="<=", lhs <= rhs + tolerance,
+    ifelse(opt.obj$const.dir=="=", abs(lhs - rhs) < tolerance,
+    ifelse(opt.obj$const.dir==">=", lhs  >= rhs - tolerance, NA)))
   if(sum(is.na(tmp.ret)) > 0) stop("Unknown constraint direction.")
   ret.tab <- data.frame(description = character(0),
                         num.inequality = integer(0),
                         num.violation = integer(0))
   for(i in seq(length.out = length(unique.description))){
-    f <- lp.env$const.description == unique.description[i]
+    f <- opt.obj$const.description == unique.description[i]
     num.viol <- sum(!tmp.ret[f])
     inc.tab <- data.frame(description = unique.description[i],
                           num.inequality = sum(f),
                           num.violation = num.viol)
 #                           ,
 #                           tmp.out1 = 1E6 * (lhs[f] - rhs[f])[1],
-#                           tmp.out2 = lp.env$const.dir[f][1],
+#                           tmp.out2 = opt.obj$const.dir[f][1],
 #                           rhs = rhs[f][1],
 #                           lhs = lhs[f][1],
 #                           tmp.out3 = (lhs <= rhs + tolerance * abs(rhs))[f][1],
 #                           tmp.out4 = (lhs <= rhs + tolerance)[f][1])
     ret.tab[i, ] <- inc.tab
   }
-  f <- lp.env$const.description %in% unique.description
-  tmp.detail <- data.frame(description = lp.env$const.description, lhs, rhs, 
-                           dir = lp.env$const.dir, ok = tmp.ret)
+  f <- opt.obj$const.description %in% unique.description
+  tmp.detail <- data.frame(description = opt.obj$const.description, lhs, rhs, 
+                           dir = opt.obj$const.dir, ok = tmp.ret)
   return(list(summary = ret.tab, 
               detail = tmp.detail[f,]))
 }
 
 #' @export 
 #' @rdname Other
-AddQuadConstraint <- function(description = "", mat, rhs = 0, rerun = TRUE, 
+AddQuadConstraint <- function(opt.obj, description = "", mat, rhs = 0, rerun = TRUE, 
                           feedback = TRUE){
   # TODO: Build in intelligence about parameters
-  if(!"quad.const.list" %in% names(lp.env)){
-    lp.env$quad.const.list <- list()
-    lp.env$quad.const.desc <- character(0)
+  if(!"quad.const.list" %in% names(opt.obj)){
+    opt.obj$quad.const.list <- list()
+    opt.obj$quad.const.desc <- character(0)
   }
-  l <- length(lp.env$quad.const.list)
+  l <- length(opt.obj$quad.const.list)
   quad.const <- list()
   quad.const$Qc <- mat
   quad.const$rhs <- rhs
-  lp.env$quad.const.list[[l + 1L]] <- quad.const
-  lp.env$quad.const.desc[l + 1L] <- description
+  opt.obj$quad.const.list[[l + 1L]] <- quad.const
+  opt.obj$quad.const.desc[l + 1L] <- description
   
   
   
   if(feedback){
-    cat(lp.env$GetTimeStamp(),
+    cat(opt.obj$GetTimeStamp(),
       "Added quadratic constraint for ",description, ". ", sep = "")
   }
   if(rerun){
-    ret <- RunLP(dont.stop = TRUE)        
+    ret <- RunLP(dont.stop = TRUE, opt.obj = opt.obj)        
     if (ret$status > 0){
       if(feedback){
         cat(ret$status.message)
       }
     }else{
       if(feedback){
-        cat("Optimal ", lp.env$obj.description, ": ", 
+        cat("Optimal ", opt.obj$obj.description, ": ", 
             ret$objval, sep = "")
       }
     }
@@ -635,19 +646,8 @@ AddQuadConstraint <- function(description = "", mat, rhs = 0, rerun = TRUE,
 }  
 
 
-lp.env <- new.env()
 backup.lp.env <- new.env()
-#require(lpSolve)
-#require(Matrix)
 
-assign(x = "optimizer", value = "lpsolve", envir = lp.env)  
-assign(x = "direction", value = "max", envir = lp.env)  
-assign(x = "lpsolve.scale", value = 0, envir = lp.env)  
-assign(x = "gurobi.params", value = list(), envir = lp.env)  
-assign(x = "gurobi.output", value = "gurobi.txt", envir = lp.env)  
-assign(x = "GetTimeStamp", 
-       value = function()paste(format(Sys.time(), "%H-%M-%S"), ": ", sep=""),
-       envir = lp.env)  
 
 
 

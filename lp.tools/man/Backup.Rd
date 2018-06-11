@@ -4,5 +4,5 @@
 \alias{Backup}
 \title{Backup}
 \usage{
-Backup()
+Backup(opt.obj)
 }

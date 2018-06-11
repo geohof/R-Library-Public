@@ -7,8 +7,6 @@
 \alias{Restore}
 \alias{SetObjective}
 \alias{RunLP}
-\alias{GetValue}
-\alias{SetValue}
 \alias{GetThreeCols}
 \alias{GetCostOfConstraint}
 \alias{GetLastSolution}
@@ -17,33 +15,32 @@
 \alias{AddQuadConstraint}
 \title{TODO: Divi up}
 \usage{
-SetLPSolveScale(lpsolve.scale)
+SetLPSolveScale(opt.obj, lpsolve.scale)
 
-Initialize(num.v, optimizer, direction, lock.variables)
+Initialize(num.v, optimizer = "lpsolve", direction = "max", lock.variables,
+  lpsolve.scale = 0, gurobi.params = list(), gurobi.output = "gurobi.txt",
+  GetTimeStamp = function() paste(format(Sys.time(), "\%H-\%M-\%S"), ": ", sep
+  = ""))
 
-Restore()
+Restore(opt.obj)
 
-SetObjective(objective, quad.obj, constant.numer = 0, objective.numer,
-  constant.denom = 0, objective.denom, scale.factor = 1, direction,
-  description = "value")
+SetObjective(opt.obj, objective, quad.obj, constant.numer = 0,
+  objective.numer, constant.denom = 0, objective.denom, scale.factor = 1,
+  direction, description = "value")
 
-RunLP(dont.stop = FALSE)
-
-GetValue(object.name)
-
-SetValue(object.name, value)
+RunLP(opt.obj, dont.stop = FALSE)
 
 GetThreeCols(mat)
 
-GetCostOfConstraint(exclude = character(0))
+GetCostOfConstraint(opt.obj, exclude = character(0))
 
-GetLastSolution()
+GetLastSolution(opt.obj)
 
-RemoveConstraint(description, rerun = TRUE, feedback = TRUE)
+RemoveConstraint(opt.obj, description, rerun = TRUE, feedback = TRUE)
 
-CheckConstraints(solution, exclude = character(0), tolerance = 1e-06)
+CheckConstraints(opt.objsolution, exclude = character(0), tolerance = 1e-06)
 
-AddQuadConstraint(description = "", mat, rhs = 0, rerun = TRUE,
+AddQuadConstraint(opt.obj, description = "", mat, rhs = 0, rerun = TRUE,
   feedback = TRUE)
 }
 \arguments{

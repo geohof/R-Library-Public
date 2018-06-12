@@ -1,5 +1,4 @@
 library(lp.tools)
-library(Matrix)
 context("SimpleExamples")
 
 
@@ -16,10 +15,10 @@ test_that("Simple Example", {
                 mat = matrix(runif(3 * num.v), ncol=num.v),
                 rhs = 1, 
                 dir = "<=")
-   AddConstraint(opt.obj = oo, description = "Random Bound", 
-                 mat = runif(num.v),
-                 rhs = 1, 
-                 dir = "<=")
+  AddConstraint(opt.obj = oo, description = "Random Bound", 
+                mat = runif(num.v),
+                rhs = 1, 
+                dir = "<=")
   AddConstraint(opt.obj = oo, description = "Random Bounds", 
                 mat = Matrix(matrix(runif(3 * (num.v - 1)), ncol=(num.v - 1))),
                 rhs = 1, 

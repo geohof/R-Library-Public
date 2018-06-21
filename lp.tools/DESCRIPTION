@@ -7,7 +7,8 @@ Author: Georg
 Maintainer: Who to complain to <yourfault@somewhere.net>
 Depends:
     lpSolve,
-    Matrix
+    Matrix,
+    R6
 Description: Helps formulating constraints and obectives for Linear Programming
     (LP) problems.
 Suggests: knitr, rmarkdown

@@ -17,15 +17,14 @@ require(gurobi)
 
 ```{r}
 num.v <- 4
-Initialize(num.v, optimizer = "gurobi")
-SetObjective(objective = rep(0, num.v), quad.obj = diag(x = rep(1, num.v)),
-             description = "Quad dist to origin", direction = "min")
-
-AddConstraint(description = "sum(x_i) > 1",
-              mat = rep(1, num.v), 
-              rhs = 1, 
-              dir = ">")
-
-sol <- GetLastSolution()
+lpp <- 
+  LPProblem$new(num.v, optimizer = "gurobi")$
+  SetObjective(objective = rep(0, num.v), quad.obj = diag(x = rep(1, num.v)),
+               description = "Quad dist to origin", direction = "min")$
+  AddConstraint(description = "sum(x_i) > 1",
+                mat = rep(1, num.v), 
+                rhs = 1, 
+                dir = ">")
+sol <- lpp$GetSolution()
 sol$solution
 ```

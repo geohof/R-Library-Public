@@ -3,4 +3,5 @@
 export(LPProblem)
 import(Matrix)
 import(R6)
+import(methods)
 importFrom(R6,R6Class)

@@ -86,6 +86,7 @@
 
 
 #' @import Matrix
+#' @import methods
 #' @import R6
 
 

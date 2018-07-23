@@ -1,0 +1,35 @@
+Warning: zero or small (< 1e-13) coefficients in quadratic constraints, ignored
+Optimize a model with 0 rows, 4 columns and 0 nonzeros
+Model has 1 quadratic constraint
+Coefficient statistics:
+  Matrix range     [0e+00, 0e+00]
+  QMatrix range    [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [0e+00, 0e+00]
+Presolve time: 0.00s
+Presolved: 5 rows, 5 columns, 5 nonzeros
+Presolved model has 1 second-order cone constraint
+Ordering time: 0.00s
+
+Barrier statistics:
+ AA' NZ     : 1.000e+01
+ Factor NZ  : 1.500e+01
+ Factor Ops : 5.500e+01 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0  -0.00000000e+00 -0.00000000e+00  0.00e+00 2.24e+00  2.92e-01     0s
+   1   7.57641472e-01  2.68912440e-01  0.00e+00 7.35e-01  7.15e-02     0s
+   2   2.85979177e-01  3.60035173e+00  0.00e+00 8.09e-07  3.31e-01     0s
+   3   1.76174531e+00  2.24127175e+00  0.00e+00 2.40e-07  4.80e-02     0s
+   4   1.99807437e+00  2.01202589e+00  0.00e+00 4.78e-10  1.40e-03     0s
+   5   1.99999784e+00  2.00001323e+00  0.00e+00 4.38e-13  1.54e-06     0s
+   6   2.00000000e+00  2.00000001e+00  0.00e+00 1.04e-09  1.91e-09     0s
+
+Barrier solved model in 6 iterations and 0.00 seconds
+Optimal objective 2.00000000e+00
+
+Warning: to get QCP duals, please set parameter QCPDual to 1
+

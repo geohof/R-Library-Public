@@ -1,0 +1,191 @@
+
+Gurobi 7.0.2 (win64) logging started 06/26/18 16:01:23
+
+Warning: zero or small (< 1e-13) coefficients in quadratic constraints, ignored
+Optimize a model with 0 rows, 4 columns and 0 nonzeros
+Model has 1 quadratic constraint
+Coefficient statistics:
+  Matrix range     [0e+00, 0e+00]
+  QMatrix range    [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [0e+00, 0e+00]
+Presolve time: 0.00s
+Presolved: 5 rows, 5 columns, 5 nonzeros
+Presolved model has 1 second-order cone constraint
+Ordering time: 0.00s
+
+Barrier statistics:
+ AA' NZ     : 1.000e+01
+ Factor NZ  : 1.500e+01
+ Factor Ops : 5.500e+01 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0  -0.00000000e+00 -0.00000000e+00  0.00e+00 2.24e+00  2.92e-01     0s
+   1   7.57641472e-01  2.68912440e-01  0.00e+00 7.35e-01  7.15e-02     0s
+   2   2.85979177e-01  3.60035173e+00  0.00e+00 8.09e-07  3.31e-01     0s
+   3   1.76174531e+00  2.24127175e+00  0.00e+00 2.40e-07  4.80e-02     0s
+   4   1.99807437e+00  2.01202589e+00  0.00e+00 4.78e-10  1.40e-03     0s
+   5   1.99999784e+00  2.00001323e+00  0.00e+00 4.38e-13  1.54e-06     0s
+   6   2.00000000e+00  2.00000001e+00  0.00e+00 1.04e-09  1.91e-09     0s
+
+Barrier solved model in 6 iterations and 0.00 seconds
+Optimal objective 2.00000000e+00
+
+Warning: to get QCP duals, please set parameter QCPDual to 1
+
+
+Gurobi 7.0.2 (win64) logging started 06/26/18 16:02:36
+
+Warning: zero or small (< 1e-13) coefficients in quadratic constraints, ignored
+Optimize a model with 0 rows, 4 columns and 0 nonzeros
+Model has 1 quadratic constraint
+Coefficient statistics:
+  Matrix range     [0e+00, 0e+00]
+  QMatrix range    [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [0e+00, 0e+00]
+Presolve time: 0.00s
+Presolved: 5 rows, 5 columns, 5 nonzeros
+Presolved model has 1 second-order cone constraint
+Ordering time: 0.00s
+
+Barrier statistics:
+ AA' NZ     : 1.000e+01
+ Factor NZ  : 1.500e+01
+ Factor Ops : 5.500e+01 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0  -0.00000000e+00 -0.00000000e+00  0.00e+00 2.24e+00  2.92e-01     0s
+   1   7.57641472e-01  2.68912440e-01  0.00e+00 7.35e-01  7.15e-02     0s
+   2   2.85979177e-01  3.60035173e+00  0.00e+00 8.09e-07  3.31e-01     0s
+   3   1.76174531e+00  2.24127175e+00  0.00e+00 2.40e-07  4.80e-02     0s
+   4   1.99807437e+00  2.01202589e+00  0.00e+00 4.78e-10  1.40e-03     0s
+   5   1.99999784e+00  2.00001323e+00  0.00e+00 4.38e-13  1.54e-06     0s
+   6   2.00000000e+00  2.00000001e+00  0.00e+00 1.04e-09  1.91e-09     0s
+
+Barrier solved model in 6 iterations and 0.00 seconds
+Optimal objective 2.00000000e+00
+
+Warning: to get QCP duals, please set parameter QCPDual to 1
+
+
+Gurobi 7.0.2 (win64) logging started 06/26/18 16:04:02
+
+Optimize a model with 6 rows, 6 columns and 6 nonzeros
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [1e+00, 1e+00]
+Presolve removed 6 rows and 6 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    6.0000000e+00   0.000000e+00   0.000000e+00      0s
+
+Solved in 0 iterations and 0.00 seconds
+Optimal objective  6.000000000e+00
+
+Gurobi 7.0.2 (win64) logging started 06/26/18 16:04:02
+
+Optimize a model with 9 rows, 6 columns and 24 nonzeros
+Coefficient statistics:
+  Matrix range     [1e-02, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [9e-02, 1e+00]
+Presolve removed 6 rows and 0 columns
+Presolve time: 0.00s
+Presolved: 3 rows, 6 columns, 18 nonzeros
+
+Iteration    Objective       Primal Inf.    Dual Inf.      Time
+       0    3.1013296e+00   1.863230e+00   0.000000e+00      0s
+       2    1.2358658e+00   0.000000e+00   0.000000e+00      0s
+
+Solved in 2 iterations and 0.00 seconds
+Optimal objective  1.235865802e+00
+
+Gurobi 7.0.2 (win64) logging started 06/26/18 16:04:02
+
+Optimize a model with 1 rows, 4 columns and 4 nonzeros
+Model has 4 quadratic objective terms
+Coefficient statistics:
+  Matrix range     [3e-01, 3e-01]
+  Objective range  [0e+00, 0e+00]
+  QObjective range [2e+00, 2e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [3e-01, 3e-01]
+Presolve time: 0.00s
+Presolved: 1 rows, 4 columns, 4 nonzeros
+Presolved model has 4 quadratic objective terms
+Ordering time: 0.00s
+
+Barrier statistics:
+ AA' NZ     : 0.000e+00
+ Factor NZ  : 1.000e+00
+ Factor Ops : 1.000e+00 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0   1.00080016e+06 -1.00080016e+06  0.00e+00 0.00e+00  1.00e+06     0s
+   1   2.66433905e+05 -2.66653219e+05  0.00e+00 1.10e+02  1.75e+05     0s
+   2   6.23318880e+04 -6.23288065e+04  0.00e+00 0.00e+00  2.49e+04     0s
+   3   9.13276694e+03 -9.13085438e+03  0.00e+00 0.00e+00  3.65e+03     0s
+   4   1.33832139e+03 -1.33731450e+03  0.00e+00 1.42e-14  5.35e+02     0s
+   5   1.96217759e+02 -1.95724307e+02  0.00e+00 8.88e-16  7.84e+01     0s
+   6   2.88162040e+01 -2.85787270e+01  0.00e+00 4.44e-16  1.15e+01     0s
+   7   4.25661353e+00 -4.13587489e+00  0.00e+00 2.22e-16  1.68e+00     0s
+   8   6.45628497e-01 -5.67430819e-01  0.00e+00 1.67e-16  2.43e-01     0s
+   9   2.50517224e-01  7.93129955e-02  0.00e+00 0.00e+00  3.42e-02     0s
+  10   2.52177976e-01  2.45465954e-01  0.00e+00 0.00e+00  1.34e-03     0s
+  11   2.50002213e-01  2.49995471e-01  0.00e+00 5.55e-17  1.35e-06     0s
+  12   2.50000002e-01  2.49999995e-01  0.00e+00 0.00e+00  1.35e-09     0s
+
+Barrier solved model in 12 iterations and 0.00 seconds
+Optimal objective 2.50000002e-01
+
+
+Gurobi 7.0.2 (win64) logging started 06/26/18 16:04:02
+
+Warning: zero or small (< 1e-13) coefficients in quadratic constraints, ignored
+Optimize a model with 0 rows, 4 columns and 0 nonzeros
+Model has 1 quadratic constraint
+Coefficient statistics:
+  Matrix range     [0e+00, 0e+00]
+  QMatrix range    [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [0e+00, 0e+00]
+  RHS range        [0e+00, 0e+00]
+Presolve time: 0.00s
+Presolved: 5 rows, 5 columns, 5 nonzeros
+Presolved model has 1 second-order cone constraint
+Ordering time: 0.00s
+
+Barrier statistics:
+ AA' NZ     : 1.000e+01
+ Factor NZ  : 1.500e+01
+ Factor Ops : 5.500e+01 (less than 1 second per iteration)
+ Threads    : 1
+
+                  Objective                Residual
+Iter       Primal          Dual         Primal    Dual     Compl     Time
+   0  -0.00000000e+00 -0.00000000e+00  0.00e+00 2.24e+00  2.92e-01     0s
+   1   7.57641472e-01  2.68912440e-01  0.00e+00 7.35e-01  7.15e-02     0s
+   2   2.85979177e-01  3.60035173e+00  0.00e+00 8.09e-07  3.31e-01     0s
+   3   1.76174531e+00  2.24127175e+00  0.00e+00 2.40e-07  4.80e-02     0s
+   4   1.99807437e+00  2.01202589e+00  0.00e+00 4.78e-10  1.40e-03     0s
+   5   1.99999784e+00  2.00001323e+00  0.00e+00 4.38e-13  1.54e-06     0s
+   6   2.00000000e+00  2.00000001e+00  0.00e+00 1.04e-09  1.91e-09     0s
+
+Barrier solved model in 6 iterations and 0.00 seconds
+Optimal objective 2.00000000e+00
+
+Warning: to get QCP duals, please set parameter QCPDual to 1
+

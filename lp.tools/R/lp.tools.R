@@ -14,6 +14,10 @@
 #' @details Details: TODO.
 #' @docType class
 #' @importFrom R6 R6Class
+#' @export
+#' @keywords Linear Programming, LP
+#' @return Object of \code{\link{R6Class}} LPP 
+#' @format \code{\link{R6Class}} object.
 #' @field num.v Number of variables in the liner problem.
 #' @section Methods:
 #' 
@@ -173,7 +177,8 @@ LPProblem <- R6Class("LPProblem", public = list(
   },
   
   AddConstraint = function(description = "", mat, rhs, dir, 
-                            avoid.duplicates = FALSE, rerun = TRUE, 
+                            avoid.duplicates = FALSE, 
+                            row.normalization = TRUE, rerun = TRUE, 
                             feedback = TRUE){
     if (class(mat)=="logical"){
       if(is.na(mat)[1]){
@@ -242,10 +247,12 @@ LPProblem <- R6Class("LPProblem", public = list(
         description <- description[f]
         # Apply normalization
         # norm.matrix <- Diagonal(x = abs(1 / rhs))
-        abs.mat <- as(abs(mat), Class = "dgCMatrix")
-        norm.matrix <- Matrix::Diagonal(x = 1 / rowSums(abs.mat))
-        mat <- norm.matrix %*% mat 
-        rhs <- as.vector(norm.matrix %*% rhs)
+        if (row.normalization){
+          abs.mat <- as(abs(mat), Class = "dgCMatrix")
+          norm.matrix <- Matrix::Diagonal(x = 1 / rowSums(abs.mat))
+          mat <- norm.matrix %*% mat 
+          rhs <- as.vector(norm.matrix %*% rhs)
+        }
         #      mat <- drop0(x = mat, tol = 1e-4)
         if (avoid.duplicates){
           f <- rep(TRUE, length(rhs))

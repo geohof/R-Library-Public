@@ -4,9 +4,12 @@
 \name{LPProblem}
 \alias{LPProblem}
 \title{Solve a Linear Programming (LP) problem with \code{lp.tools}}
-\format{An object of class \code{R6ClassGenerator} of length 24.}
+\format{\code{\link{R6Class}} object.}
 \usage{
 # lpp <- LPProblem$new(num.v = 10)
+}
+\value{
+Object of \code{\link{R6Class}} LPP
 }
 \description{
 The \code{LPProblem} class is the core of the \code{lp.tools} package. TODO: more
@@ -88,4 +91,6 @@ lpp <-
                 dir = "<=")
 lpp$CheckConstraints(solution = lpp$GetSolution()$solution + .01)
 }
-\keyword{datasets}
+\keyword{LP}
+\keyword{Linear}
+\keyword{Programming,}

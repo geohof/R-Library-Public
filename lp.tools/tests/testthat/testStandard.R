@@ -61,8 +61,6 @@ test_that("Lock Variables", {
     expect_equal(lpp$GetSolution()$solution, 
                c(0.3, 0.3, 0.3, 0.3, 0.145551940979471, 1, 0, 0, 0.0903138608130597, 0))
 })
-# the following test require gurobi, and won't be executed if no gurobi package 
-# is installed:
 
 
 test_that("Fractional objective", {
@@ -114,56 +112,54 @@ test_that("Cloning", {
   expect_equal(lpp2$GetSolution()$objval, 3.28221554142143)
 })
 
+# The following tests require gurobi, and won't be executed gurobi is not 
+# available:
 
 
-if ("gurobi" %in% installed.packages()[, 1]) {
+if (CheckGurobi() == "Gurobi good to go.") {
   require(gurobi)
-
-
-test_that("Lock Variables (Gurobi)", {
-  num.v <- 10
-  set.seed(60606)
-  lpp <- 
-    LPProblem$new(num.v, lock.variables = rep(.3, 4), optimizer = "gurobi")$
-    SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")$
-    AddConstraint(description = "Upper Bound", 
-                  mat = Diagonal(num.v), 
-                  rhs = 1, 
-                  dir = "<=")$
-    AddConstraint(description = "Random Bounds", 
-                  mat = matrix(runif(3 * num.v), ncol=num.v),
-                  rhs = 1, 
-                  dir = "<=")
-
-    expect_equal(lpp$GetSolution()$solution, 
-                 c(0.3, 0.3, 0.3, 0.3, 0.145551940979471, 1, 0, 0, 0.0903138608130597, 0))
-})
+  test_that("Lock Variables (Gurobi)", {
+    num.v <- 10
+    set.seed(60606)
+    lpp <- 
+      LPProblem$new(num.v, lock.variables = rep(.3, 4), optimizer = "gurobi")$
+      SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")$
+      AddConstraint(description = "Upper Bound", 
+                    mat = Diagonal(num.v), 
+                    rhs = 1, 
+                    dir = "<=")$
+      AddConstraint(description = "Random Bounds", 
+                    mat = matrix(runif(3 * num.v), ncol=num.v),
+                    rhs = 1, 
+                    dir = "<=")
+      expect_equal(lpp$GetSolution()$solution, 
+                   c(0.3, 0.3, 0.3, 0.3, 0.145551940979471, 1, 0, 0, 0.0903138608130597, 0))
+  })
   
 
-test_that("Quadratic Objective", {
-  num.v <- 4
-  lpp <- 
-    LPProblem$new(num.v, optimizer = "gurobi")$
-    SetObjective(objective = rep(0, num.v), 
-                 quad.obj = diag(x = rep(1, num.v)),
-                 description = "Quad dist to origin", direction = "min")$
-    AddConstraint(description = "sum(x_i) >= 1",
-                  mat = rep(1, num.v), 
-                  rhs = 1, 
-                  dir = ">=")
-  expect_equal(lpp$GetSolution()$solution, rep(.25, 4))
-  expect_equal(lpp$GetSolution()$objval, .25)
-})
+  test_that("Quadratic Objective", {
+    num.v <- 4
+    lpp <- 
+      LPProblem$new(num.v, optimizer = "gurobi")$
+      SetObjective(objective = rep(0, num.v), 
+                   quad.obj = diag(x = rep(1, num.v)),
+                   description = "Quad dist to origin", direction = "min")$
+      AddConstraint(description = "sum(x_i) >= 1",
+                    mat = rep(1, num.v), 
+                    rhs = 1, 
+                    dir = ">=")
+    expect_equal(lpp$GetSolution()$solution, rep(.25, 4))
+    expect_equal(lpp$GetSolution()$objval, .25)
+  })
 
-test_that("Quadratic Constraint", {
-  num.v <- 4
-  lpp <- 
-    LPProblem$new(num.v, optimizer = "gurobi")$
-    SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")$
-    AddQuadConstraint(description = "Inside Circle", 
-                          mat = diag(x = rep(1, num.v)), rhs = 1)
-  expect_equal(lpp$GetSolution()$solution, rep(.5, 4))
-  expect_equal(lpp$GetSolution()$objval, 2)
-})
-
+  test_that("Quadratic Constraint", {
+    num.v <- 4
+    lpp <- 
+      LPProblem$new(num.v, optimizer = "gurobi")$
+      SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")$
+      AddQuadConstraint(description = "Inside Circle", 
+                        mat = diag(x = rep(1, num.v)), rhs = 1)
+    expect_equal(lpp$GetSolution()$solution, rep(.5, 4))
+    expect_equal(lpp$GetSolution()$objval, 2)
+  })
 }

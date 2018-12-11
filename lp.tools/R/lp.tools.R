@@ -148,8 +148,11 @@ LPProblem <- R6Class("LPProblem", public = list(
     self$gurobi.params <- gurobi.params
     self$gurobi.output <- gurobi.output
 
-    if (!missing(optimizer)){
-      self$optimizer <- optimizer
+    if (optimizer=="gurobi"){
+      ret <- CheckGurobi()
+      if (ret != "Gurobi good to go."){
+        stop(ret)
+      }
     }
     if (!missing(direction)){
       self$direction <- direction
@@ -613,4 +616,22 @@ GetThreeCols <- function(mat){
   return(as.matrix(df))
 }
 
-
+CheckGurobi <- function(){
+  if(!"gurobi" %in% installed.packages()[, 1]){
+    return("Gurobi R package not installed.")
+  }else{  
+    require(gurobi)
+    gurobi.available <- TRUE
+    model <- list(A = matrix(1), obj = 1, sense = "<=", rhs = 1) 
+    r <- tryCatch(
+      tmp.sol <- gurobi(model = model, params = list(OutputFlag = 0)),
+      error = function(e) gurobi.available <<- FALSE
+    )
+    if(!gurobi.available){
+      return("Gurobi not responging.")
+    }else{
+      return("Gurobi good to go.")
+    }
+  }
+}
+CheckGurobi()

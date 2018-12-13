@@ -407,6 +407,12 @@ LPProblem <- R6Class("LPProblem", public = list(
         }
         model$quadcon <- self$quad.const.list
       }
+      if((!is.null(self$quad.const.list)) | (!is.null(self$quad.obj))){
+        if(self$num.locked > 0){
+          stop("Currently, variable locking can't be combined with quadratic objectives or constaints.")
+        }
+        model$quadcon <- self$quad.const.list
+      }
       sink(self$gurobi.output)
       tmp.sol <- gurobi(model, self$gurobi.params)
       sink()

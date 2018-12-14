@@ -98,6 +98,7 @@ LPProblem <- R6Class("LPProblem", public = list(
   num.v = 0,
   optimizer = "lpsolve",
   direction = "max",
+  lock.via.constraints = FALSE,
   lock.variables = numeric(0),
   lpsolve.scale = 0, 
   gurobi.params = list(), 
@@ -134,16 +135,14 @@ LPProblem <- R6Class("LPProblem", public = list(
   
   initialize = function(num.v, optimizer = "lpsolve", direction = "max", 
                          lock.variables,
+                         lock.via.constraints,
                          lpsolve.scale = 0, 
                          gurobi.params = list(), 
                          gurobi.output = "gurobi.txt"
-                         ){
+                        ){
     self$num.v <- num.v
     self$optimizer <- optimizer
     self$direction <- direction
-    if (!missing(lock.variables)){
-      self$lock.variables <- lock.variables
-    }
     self$lpsolve.scale <- lpsolve.scale 
     self$gurobi.params <- gurobi.params
     self$gurobi.output <- gurobi.output
@@ -157,6 +156,9 @@ LPProblem <- R6Class("LPProblem", public = list(
     if (!missing(direction)){
       self$direction <- direction
     }
+    if (!missing(lock.via.constraints)){
+      self$lock.via.constraints <- lock.via.constraints
+    }
     if (!missing(lock.variables)){
       if(num.v==sum(!is.na(lock.variables))){
         warning("lp.tools: All variables are locked.")
@@ -165,15 +167,19 @@ LPProblem <- R6Class("LPProblem", public = list(
         lock.variables <- c(lock.variables, rep(NA, num.v - length(lock.variables)))
       }
       self$lock.variables <- lock.variables
-      self$num.unlocked <- sum(is.na(lock.variables))
     }else{
       self$lock.variables <- rep(NA, num.v)
     }
-    self$lock.filter <- !is.na(self$lock.variables)
+    if(self$lock.via.constraints){
+      self$lock.filter <- rep(FALSE, self$num.v)
+      self$locked.vec <- numeric(0)
+    }else{
+      self$lock.filter <- !is.na(self$lock.variables)
+      self$locked.vec <- self$lock.variables[self$lock.filter]
+    }
     self$unlock.filter <- !self$lock.filter
     self$num.unlocked <- sum(self$unlock.filter)
     self$num.locked <- sum(self$lock.filter)
-    self$locked.vec <- self$lock.variables[self$lock.filter]
     self$const.mat <- sparseMatrix(
       i = integer(0), j = integer(0), 
       x = numeric(0), dims = c(0, self$num.unlocked))
@@ -305,7 +311,6 @@ LPProblem <- R6Class("LPProblem", public = list(
       }
     return(invisible(self))
   },
-
   SetObjective = function(objective, quad.obj, constant.numer = 0, objective.numer,
                           constant.denom = 0, objective.denom, scale.factor = 1, 
                           direction, description = "value"){
@@ -334,6 +339,7 @@ LPProblem <- R6Class("LPProblem", public = list(
   
       self$trans.objective <- c(self$objective.numer, self$constant.numer)
     }
+    self$AddLockingConstraint()
     return(invisible(self))
   },
 
@@ -610,7 +616,23 @@ LPProblem <- R6Class("LPProblem", public = list(
       cat("\r\n")
     }
     return(invisible(self))
-  }  
+  },  
+#), private = list(
+  AddLockingConstraint = function(){
+    if(self$lock.via.constraints){
+      lock.filter <- !is.na(self$lock.variables)
+      if(sum(lock.filter) > 0){
+        lock.mat <- sparseMatrix(dims = c(sum(lock.filter), self$num.v),
+                                 i = seq_len(sum(lock.filter)),
+                                 j = which(lock.filter),
+                                 x = 1)
+        self$AddConstraint(description = "Variable locking", 
+                           mat = lock.mat,
+                           rhs = self$lock.variables[lock.filter], 
+                           dir = "=")
+      }
+    }
+  }
 ))
 
 GetThreeCols <- function(mat){
@@ -622,6 +644,8 @@ GetThreeCols <- function(mat){
   return(as.matrix(df))
 }
 
+
+#' @export
 CheckGurobi <- function(){
   if(!"gurobi" %in% installed.packages()[, 1]){
     return("Gurobi R package not installed.")
@@ -640,4 +664,3 @@ CheckGurobi <- function(){
     }
   }
 }
-CheckGurobi()

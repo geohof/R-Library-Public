@@ -162,4 +162,16 @@ if (CheckGurobi() == "Gurobi good to go.") {
     expect_equal(lpp$GetSolution()$solution, rep(.5, 4))
     expect_equal(lpp$GetSolution()$objval, 2)
   })
+
+  test_that("Quadratic Constraint with locking", {
+    num.v <- 5
+    lpp <- 
+      LPProblem$new(num.v, lock.variables = c(NA, 1, NA, NA, NA), 
+                    optimizer = "gurobi", lock.via.constraints = TRUE)$
+      SetObjective(objective = rep(1, num.v), description = "Sum", direction = "max")$
+      AddQuadConstraint(description = "Inside Circle", 
+                        mat = diag(x = rep(1, num.v)), rhs = 2)
+    expect_equal(lpp$GetSolution()$solution, c(.5, 1, .5, .5, .5))
+    expect_equal(lpp$GetSolution()$objval, 3)
+  })
 }

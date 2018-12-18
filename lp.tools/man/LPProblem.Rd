@@ -3,7 +3,7 @@
 \docType{class}
 \name{LPProblem}
 \alias{LPProblem}
-\title{Solve a Linear Programming (LP) problem with \code{lp.tools}}
+\title{A Linear Programming (LP) problem with \code{lp.tools}}
 \format{\code{\link{R6Class}} object.}
 \usage{
 # lpp <- LPProblem$new(num.v = 10)

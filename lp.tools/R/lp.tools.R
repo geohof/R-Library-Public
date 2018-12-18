@@ -6,15 +6,77 @@
 "_PACKAGE"
 
 
-
-
-#' Solve a Linear Programming (LP) problem with \code{lp.tools}
+#' @name Logger
+#' @title Logging via R6 object
+#' @description Log to screen, file and to a data.frame.
 #' 
-#' @description The \code{LPProblem} class is the core of the \code{lp.tools} package. TODO: more
 #' @details Details: TODO.
 #' @docType class
 #' @importFrom R6 R6Class
 #' @export
+#' @keywords Log, Logging
+#' @return Object of \code{\link{R6Class}} Logger
+#' @format \code{\link{R6Class}} object.
+
+
+#' @rdname Logger
+#' @export
+Logger <- R6Class("Logger", public = list(
+    file = NULL,
+    con = NULL,
+    log.tab = data.frame(stringsAsFactors = F, message = character(0)),
+    current.line = "",
+    prefix = paste0(format(Sys.time(), "%H-%M-%S"), ": "),
+    initialize = function(file = NULL){
+      if(is.null(file)){
+        private$file.provided <- FALSE
+        self$file <- tempfile()
+      }else{
+        self$file <- file
+      }
+      con <- file(self$file, open = "w")
+      #writeLines(text = "Log file", con = con)
+      close(con)
+    },
+    WriteChars = function(...){
+      self$StartLine()
+      cat(..., sep = "")
+      self$current.line <- paste0(self$current.line, ...)
+      con <- file(self$file, open = "a")
+      writeChar(object = self$current.line, con = con)
+      close(con)
+    },
+    WriteLine = function(...){
+      self$StartLine()
+      cat(..., "\r\n", sep = "")
+      self$log.tab <- rbind(
+        self$log.tab, 
+        data.frame(stringsAsFactors = F, message = paste0(self$current.line, ...)))
+      con <- file(self$file, open = "a")
+      writeLines(text = paste0(...), con = con)
+      close(con)
+      self$current.line <- ""
+    },
+    StartLine = function(){      
+      if(self$current.line == ""){
+        self$current.line <- self$prefix
+        cat(self$current.line)
+      }
+    }
+  ), private = list(
+    file.provided = TRUE
+  )
+)
+
+
+
+
+#' @name LPProblem
+#' @title A Linear Programming (LP) problem with \code{lp.tools}
+#' @description The \code{LPProblem} class is the core of the \code{lp.tools} package. TODO: more
+#' @details Details: TODO.
+#' @docType class
+#' @importFrom R6 R6Class
 #' @keywords Linear Programming, LP
 #' @return Object of \code{\link{R6Class}} LPP 
 #' @format \code{\link{R6Class}} object.
@@ -94,6 +156,7 @@
 #' @import R6
 
 
+#' @export
 LPProblem <- R6Class("LPProblem", public = list(
   num.v = 0,
   optimizer = "lpsolve",
@@ -131,21 +194,27 @@ LPProblem <- R6Class("LPProblem", public = list(
   trans.const.mat = NULL,
   trans.const.rhs = NULL,
   trans.const.dir = NULL,
-  GetTimeStamp = function()paste(format(Sys.time(), "%H-%M-%S"), ": ", sep=""),
-  
+  lgr = NULL,
+
   initialize = function(num.v, optimizer = "lpsolve", direction = "max", 
                          lock.variables,
                          lock.via.constraints,
                          lpsolve.scale = 0, 
                          gurobi.params = list(), 
-                         gurobi.output = "gurobi.txt"
+                         gurobi.output = "gurobi.txt",
+                         lgr = NULL
                         ){
+    if(is.null(lgr)){
+      lgr <- Logger$new()
+    }
+    self$lgr <- lgr
     self$num.v <- num.v
     self$optimizer <- optimizer
     self$direction <- direction
     self$lpsolve.scale <- lpsolve.scale 
     self$gurobi.params <- gurobi.params
     self$gurobi.output <- gurobi.output
+    
 
     if (optimizer=="gurobi"){
       ret <- CheckGurobi()
@@ -192,9 +261,8 @@ LPProblem <- R6Class("LPProblem", public = list(
     if (class(mat)=="logical"){
       if(is.na(mat)[1]){
         if(feedback)
-          cat(self$GetTimeStamp(),
-            "No constraint added for ", 
-            paste(unique(description), collapse = ", "), "\r\n")
+          self$lgr$WriteLine("No constraint added for ", 
+               paste(unique(description), collapse = ", "))
         return(invisible(0))
       }
     }
@@ -288,26 +356,25 @@ LPProblem <- R6Class("LPProblem", public = list(
     if(ret.value > 0){
       self$UpdateFractionalObjective()
       if(feedback)
-        cat(self$GetTimeStamp(),
-            "Number of inequalities added for ", 
+        self$lgr$WriteChars("Number of inequalities added for ", 
             paste(unique(description), collapse = ", "), ": ", 
-            length(rhs), ". ", sep = "")
+            length(rhs), ". ")
         if(rerun){
           ret <- self$Solve(dont.stop = TRUE)$GetSolution()        
           if (ret$status > 0){
             if(feedback)
-              cat(ret$status.message)
+              self$lgr$WriteChars(ret$status.message)
           }else{
             if(feedback)
-              cat("Optimal ", self$obj.description, ": ", 
-                ret$objval, sep = "")
+              self$lgr$WriteChars("Optimal ", self$obj.description, ": ", 
+                ret$objval)
           }
         }
         if(feedback)
-          cat("\r\n")
+          self$lgr$WriteLine()
       }else{
         if(feedback)
-          cat(self$GetTimeStamp(), "No constraint added.\r\n", sep="")
+          self$lgr$WriteLine("No constraint added.")
       }
     return(invisible(self))
   },
@@ -469,22 +536,21 @@ LPProblem <- R6Class("LPProblem", public = list(
     self$const.description <- self$const.description[f]
     self$UpdateFractionalObjective()
     if(feedback)
-      cat(self$GetTimeStamp(),
-          "Number of inequalities removed for ", 
+      self$lgr$WriteChars("Number of inequalities removed for ", 
           paste(unique(description), collapse = ", "), ": ", 
-          sum(!f), ". ", sep = "")
+          sum(!f), ". ")
     if(rerun){
       ret <- self$Solve(dont.stop = TRUE)$GetSolution()
       if (ret$status > 0){
         if(feedback)
-          cat(ret$status.message)
+          self$lgr$WriteChars(ret$status.message)
       }else{
         if(feedback)
-          cat("Optimal ", self$obj.description, ": ", ret$objval, sep = "")
+          self$lgr$WriteChars("Optimal ", self$obj.description, ": ", ret$objval)
       }
     }
     if(feedback)
-      cat("\r\n")
+      self$lgr$WriteLine()
     return(invisible(self))
   },
 
@@ -539,11 +605,11 @@ LPProblem <- R6Class("LPProblem", public = list(
     unique.description <- unique(self$const.description)
     unique.description <- unique.description[!unique.description %in% exclude]
 #   if(length(unique.description) == 0){
-#     cat("No constraints to check.")
+#     self$lgr$WriteChars("No constraints to check.")
 #     return(data.frame())
 #   }
     if (!all(solution[self$lock.filter]==self$locked.vec)){
-      cat("Locked variables not reflected in this solution.\r\n")
+      self$lgr$WriteLine("Locked variables are not reflected in this solution.")
     }
     lhs <- as.vector(self$const.mat %*% solution[self$unlock.filter])
     rhs <- self$const.rhs
@@ -596,24 +662,22 @@ LPProblem <- R6Class("LPProblem", public = list(
     self$quad.const.desc[l + 1L] <- description
 
     if(feedback){
-      cat(self$GetTimeStamp(),
-        "Added quadratic constraint for ",description, ". ", sep = "")
+      self$lgr$WriteChars("Added quadratic constraint for ", description, ". ")
     }
     if(rerun){
       ret <- self$Solve(dont.stop = TRUE)$GetSolution()        
       if (ret$status > 0){
         if(feedback){
-          cat(ret$status.message)
+          self$lgr$WriteChars(ret$status.message)
         }
       }else{
         if(feedback){
-          cat("Optimal ", self$obj.description, ": ", 
-              ret$objval, sep = "")
+          self$lgr$WriteChars("Optimal ", self$obj.description, ": ", ret$objval)
         }
       }
     }
     if(feedback){
-      cat("\r\n")
+      self$lgr$WriteLine()
     }
     return(invisible(self))
   },  
@@ -664,3 +728,4 @@ CheckGurobi <- function(){
     }
   }
 }
+

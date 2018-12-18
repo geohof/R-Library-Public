@@ -2,6 +2,7 @@
 
 export(CheckGurobi)
 export(LPProblem)
+export(Logger)
 import(Matrix)
 import(R6)
 import(methods)

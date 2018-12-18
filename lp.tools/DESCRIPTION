@@ -1,8 +1,8 @@
 Package: lp.tools
 Type: Package
 Title: Tools for LP problems
-Version: 2.0
-Date: 2015-06-02
+Version: 2.1
+Date: 2018-12-18
 Author: Georg
 Maintainer: Who to complain to <yourfault@somewhere.net>
 Depends:

@@ -722,7 +722,7 @@ CheckGurobi <- function(){
       error = function(e) gurobi.available <<- FALSE
     )
     if(!gurobi.available){
-      return("Gurobi not responging.")
+      return("Gurobi not responding.")
     }else{
       return("Gurobi good to go.")
     }
